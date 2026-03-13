@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from apps.users.models import User
+from django.conf import settings
 
 
 class Language(models.TextChoices):
@@ -10,9 +10,7 @@ class Language(models.TextChoices):
 
 
 class WordSearchPuzzle(models.Model):
-    """
-    Філворд — набір слів + згенерована сітка.
-    """
+    """Філворд — набір слів + згенерована сітка."""
     title = models.CharField(_("назва"), max_length=200)
     language = models.CharField(
         _("мова завдання"),
@@ -21,14 +19,14 @@ class WordSearchPuzzle(models.Model):
         default=Language.ENGLISH,
     )
     created_by = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="puzzles",
         verbose_name=_("автор"),
     )
     is_public = models.BooleanField(_("публічний"), default=False)
     grid_size = models.PositiveSmallIntegerField(_("розмір сітки"), default=15)
-    # JSON: {"grid": [[...]], "words": [...], "placements": [...]}
+    # {"grid": [["A","B",...], ...], "placements": [{"word": "CAT", "row": 0, "col": 2, "direction": "H"}, ...]}
     grid_data = models.JSONField(_("дані сітки"), default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -39,7 +37,8 @@ class WordSearchPuzzle(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.title} ({self.get_language_display()}) — {'публічний' if self.is_public else 'приватний'}"
+        status = "публічний" if self.is_public else "приватний"
+        return f"{self.title} ({self.get_language_display()}) — {status}"
 
 
 class WordSearchWord(models.Model):
@@ -60,15 +59,30 @@ class WordSearchWord(models.Model):
         return self.word
 
 
-class WordSearchAttempt(models.Model):
-    """Результат проходження філворда учнем."""
-    puzzle = models.ForeignKey(WordSearchPuzzle, on_delete=models.CASCADE, related_name="attempts")
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)  # null = гість
-    found_words = models.JSONField(default=list)  # список знайдених слів
-    completed = models.BooleanField(default=False)
+class UserPuzzleProgress(models.Model):
+    """
+    Прогрес залогіненого користувача по конкретному філворду.
+    Для гостей — localStorage на фронтенді.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="puzzle_progress",
+    )
+    puzzle = models.ForeignKey(
+        WordSearchPuzzle,
+        on_delete=models.CASCADE,
+        related_name="progress",
+    )
+    found_words = models.JSONField(_("знайдені слова"), default=list)
+    is_done = models.BooleanField(_("позначено як виконане"), default=False)
     started_at = models.DateTimeField(auto_now_add=True)
     finished_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        verbose_name = _("спроба")
-        verbose_name_plural = _("спроби")
+        verbose_name = _("прогрес")
+        verbose_name_plural = _("прогрес користувачів")
+        unique_together = ("user", "puzzle")
+
+    def __str__(self):
+        return f"{self.user} — {self.puzzle.title}"
