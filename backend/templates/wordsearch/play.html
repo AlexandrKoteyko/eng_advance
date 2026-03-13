@@ -1,290 +1,261 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Філворди</title>
+{% extends "base.html" %}
+{% block title %}Puzzle — LangLearn{% endblock %}
+{% block nav_ws %}active{% endblock %}
+
+{% block extra_head %}
 <style>
-  :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #22263a;
-    --accent: #6c63ff;
-    --accent2: #48bb78;
-    --text: #e8eaf0;
-    --muted: #8b92a8;
-    --border: #2d3248;
-    --done: #2d4a3e;
-    --done-text: #68d391;
-    --radius: 12px;
-    --en: #4299e1;
-    --uk: #f6ad55;
-    --fi: #68d391;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+.play-wrap { max-width:1200px; margin:0 auto; padding:32px 24px; }
+.play-header { display:flex; align-items:center; gap:14px; margin-bottom:28px; flex-wrap:wrap; }
+.puzzle-title { font-family:var(--font-head); font-size:1.4rem; font-weight:800; flex:1; color:var(--text); }
+.done-btn {
+  padding:8px 18px; border-radius:9px; border:1px solid var(--border);
+  background:var(--surface); color:var(--muted); cursor:pointer;
+  font-size:.85rem; font-weight:600; transition:all var(--transition); font-family:var(--font-body);
+}
+.done-btn.marked { background:rgba(56,217,169,.1); color:var(--accent2); border-color:var(--accent2); }
 
-  header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 16px 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-  }
-  .logo { font-size: 1.3rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
-  .lang-switcher { display: flex; gap: 8px; }
-  .lang-btn {
-    padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
-    background: transparent; color: var(--muted); cursor: pointer; font-size: 0.85rem; transition: all .2s;
-  }
-  .lang-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.play-body { display:flex; gap:28px; align-items:flex-start; }
 
-  main { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+/* Grid */
+.grid-wrap { flex:1; display:flex; justify-content:center; }
+#wsGrid {
+  display:inline-grid; gap:3px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:12px; cursor:crosshair;
+  user-select:none;
+}
+.cell {
+  width:36px; height:36px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.88rem; font-weight:700; letter-spacing:.3px;
+  background:var(--surface2); border:2px solid transparent;
+  transition:background .1s, border-color .1s, color .1s;
+  color:var(--text);
+}
+.cell.selecting { background:rgba(79,142,247,.25); border-color:var(--accent); color:var(--accent); }
+.cell.found     { background:rgba(56,217,169,.2);  border-color:var(--accent2); color:var(--accent2); }
+.cell.found.selecting { background:rgba(56,217,169,.35); }
+[data-theme="light"] .cell { background:#eef1f8; }
+[data-theme="light"] .cell.selecting { background:rgba(47,111,224,.15); color:#2f6fe0; }
+[data-theme="light"] .cell.found     { background:rgba(26,170,130,.15); color:#0f766e; }
 
-  .page-title { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
-  .page-subtitle { color: var(--muted); margin-bottom: 32px; }
+/* Word panel */
+.word-panel {
+  width:220px; flex-shrink:0;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:20px;
+  position:sticky; top:calc(var(--nav-h) + 20px);
+}
+.panel-title { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:14px; }
+.word-list { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+.word-item {
+  padding:7px 12px; border-radius:8px;
+  background:var(--surface2); border:1px solid var(--border);
+  font-weight:600; font-size:.88rem; color:var(--text);
+  display:flex; align-items:center; gap:7px;
+  transition:all var(--transition);
+}
+.word-item.found-word { text-decoration:line-through; color:var(--muted); background:transparent; border-color:transparent; }
+.word-item .ck { color:var(--accent2); font-size:.78rem; }
+.prog-bar-bg { background:var(--surface2); border-radius:5px; height:5px; overflow:hidden; }
+.prog-bar    { height:100%; background:var(--accent2); border-radius:5px; transition:width .4s; }
+.prog-txt    { font-size:.75rem; color:var(--muted); text-align:center; margin-top:6px; }
 
-  .toolbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 28px;
-    flex-wrap: wrap;
-  }
-  .filter-label { color: var(--muted); font-size: 0.9rem; }
-  .filter-btn {
-    padding: 7px 18px; border-radius: 20px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--muted); cursor: pointer; font-size: 0.85rem;
-    transition: all .2s; font-weight: 500;
-  }
-  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
-  .filter-btn.active { border-color: var(--accent); background: var(--accent); color: #fff; }
-  .filter-btn[data-lang="en"].active { background: var(--en); border-color: var(--en); }
-  .filter-btn[data-lang="uk"].active { background: var(--uk); border-color: var(--uk); color: #1a1d27; }
-  .filter-btn[data-lang="fi"].active { background: var(--fi); border-color: var(--fi); color: #1a1d27; }
-
-  .filter-done-btn {
-    margin-left: auto;
-    padding: 7px 18px; border-radius: 20px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--muted); cursor: pointer; font-size: 0.85rem;
-    transition: all .2s;
-  }
-  .filter-done-btn.active { background: var(--done); color: var(--done-text); border-color: var(--done-text); }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 18px;
-  }
-
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    cursor: pointer;
-    transition: transform .2s, border-color .2s, box-shadow .2s;
-    text-decoration: none;
-    display: block;
-    position: relative;
-  }
-  .card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: 0 8px 32px rgba(108,99,255,.15); }
-  .card.is-done { border-color: #2d4a3e; background: #151f1a; }
-
-  .card-lang {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-bottom: 12px;
-  }
-  .card-lang.en { background: rgba(66,153,225,.2); color: var(--en); }
-  .card-lang.uk { background: rgba(246,173,85,.2); color: var(--uk); }
-  .card-lang.fi { background: rgba(104,211,145,.2); color: var(--fi); }
-
-  .card-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; }
-  .card-meta { font-size: 0.82rem; color: var(--muted); }
-
-  .done-badge {
-    position: absolute; top: 14px; right: 14px;
-    background: var(--done); color: var(--done-text);
-    font-size: 0.72rem; padding: 3px 8px; border-radius: 10px; font-weight: 600;
-  }
-
-  .empty { text-align: center; padding: 80px 0; color: var(--muted); }
-  .empty-icon { font-size: 3rem; margin-bottom: 12px; }
-
-  .create-btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: var(--accent); color: #fff;
-    padding: 10px 22px; border-radius: 8px; border: none;
-    font-size: 0.95rem; font-weight: 600; cursor: pointer;
-    text-decoration: none; transition: opacity .2s;
-    margin-left: auto;
-  }
-  .create-btn:hover { opacity: .85; }
-
-  .loading { text-align: center; padding: 60px; color: var(--muted); }
+/* Complete overlay */
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(6px); align-items:center; justify-content:center; z-index:200; }
+.overlay.show { display:flex; }
+.overlay-card {
+  background:var(--surface); border:1px solid var(--accent2);
+  border-radius:20px; padding:48px 52px; text-align:center;
+  animation:popIn .35s ease;
+}
+@keyframes popIn { from{transform:scale(.8);opacity:0} to{transform:scale(1);opacity:1} }
+.overlay-card .big-emoji { font-size:3.5rem; margin-bottom:14px; }
+.overlay-card h2 { font-family:var(--font-head); font-size:1.7rem; font-weight:800; color:var(--accent2); margin-bottom:8px; }
+.overlay-card p  { color:var(--muted); margin-bottom:26px; }
 </style>
-</head>
-<body>
+{% endblock %}
 
-<header>
-  <div class="logo">🔤 LangLearn</div>
-  <div class="lang-switcher">
-    <button class="lang-btn" data-ui="uk" onclick="setUILang('uk')">UA</button>
-    <button class="lang-btn active" data-ui="en" onclick="setUILang('en')">EN</button>
-    <button class="lang-btn" data-ui="fi" onclick="setUILang('fi')">FI</button>
-  </div>
-</header>
-
-<main>
-  <h1 class="page-title" id="pageTitle">Word Search Puzzles</h1>
-  <p class="page-subtitle" id="pageSubtitle">Choose a puzzle and find all hidden words</p>
-
-  <div class="toolbar">
-    <span class="filter-label" id="filterLabel">Filter by language:</span>
-    <button class="filter-btn active" data-lang="all" onclick="setFilter('all')" id="f-all">All</button>
-    <button class="filter-btn" data-lang="en" onclick="setFilter('en')" id="f-en">🇬🇧 English</button>
-    <button class="filter-btn" data-lang="uk" onclick="setFilter('uk')" id="f-uk">🇺🇦 Ukrainian</button>
-    <button class="filter-btn" data-lang="fi" onclick="setFilter('fi')" id="f-fi">🇫🇮 Finnish</button>
-    <button class="filter-done-btn" id="doneToggle" onclick="toggleDoneFilter()">Hide done</button>
-    <a href="/wordsearch/create/" class="create-btn" id="createBtn" style="display:none">+ Create</a>
+{% block content %}
+<div class="play-wrap">
+  <div class="play-header">
+    <a href="/wordsearch/" class="btn btn-ghost btn-sm" id="backBtn"></a>
+    <div class="puzzle-title" id="pzTitle">…</div>
+    <span class="tag" id="pzLang"></span>
+    <button class="done-btn" id="doneBtn" onclick="toggleDone()"></button>
   </div>
 
-  <div class="grid" id="puzzleGrid">
-    <div class="loading" id="loadingMsg">Loading...</div>
+  <div class="play-body" id="playBody">
+    <div style="flex:1;text-align:center;padding:80px;color:var(--muted)" id="loadTxt">Loading…</div>
   </div>
-</main>
+</div>
 
+<div class="overlay" id="completeOverlay">
+  <div class="overlay-card">
+    <div class="big-emoji">🎉</div>
+    <h2 id="completeHd"></h2>
+    <p id="completeSub"></p>
+    <a href="/wordsearch/" class="btn btn-primary btn-lg" id="completeBack"></a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <script>
-const API = '/api/wordsearch/';
-const i18n = {
-  en: {
-    title: 'Word Search Puzzles', subtitle: 'Choose a puzzle and find all hidden words',
-    filter: 'Filter by language:', all: 'All', hideDone: 'Hide done', showDone: 'Show done',
-    words: 'words', by: 'by', done: '✓ Done', create: '+ Create', loading: 'Loading...',
-    empty: 'No puzzles found', emptyHint: 'Try changing the filter',
-  },
-  uk: {
-    title: 'Філворди', subtitle: 'Обери завдання та знайди всі приховані слова',
-    filter: 'Фільтр за мовою:', all: 'Всі', hideDone: 'Приховати виконані', showDone: 'Показати виконані',
-    words: 'слів', by: 'від', done: '✓ Виконано', create: '+ Створити', loading: 'Завантаження...',
-    empty: 'Завдань не знайдено', emptyHint: 'Спробуй змінити фільтр',
-  },
-  fi: {
-    title: 'Täytäpelat', subtitle: 'Valitse tehtävä ja löydä kaikki piilotetut sanat',
-    filter: 'Suodata kielen mukaan:', all: 'Kaikki', hideDone: 'Piilota tehdyt', showDone: 'Näytä tehdyt',
-    words: 'sanaa', by: 'tekijä', done: '✓ Tehty', create: '+ Luo', loading: 'Ladataan...',
-    empty: 'Ei tehtäviä', emptyHint: 'Kokeile muuttaa suodatinta',
-  },
+const PZ_I18N = {
+  en:{ back:'← Back', markDone:'Mark as done', unmark:'✓ Done', loading:'Loading puzzle…', wordsTitle:'Find these words', found:'found', allFound:'All words found!', congrats:'Well done!', backList:'Back to list' },
+  uk:{ back:'← Назад', markDone:'Позначити виконаним', unmark:'✓ Виконано', loading:'Завантаження…', wordsTitle:'Знайди слова', found:'знайдено', allFound:'Всі слова знайдено!', congrats:'Вітаємо!', backList:'До списку' },
+  fi:{ back:'← Takaisin', markDone:'Merkitse tehdyksi', unmark:'✓ Tehty', loading:'Ladataan…', wordsTitle:'Löydettävät sanat', found:'löydetty', allFound:'Kaikki sanat löydetty!', congrats:'Hienoa!', backList:'Takaisin listaan' },
 };
+function tr() { return PZ_I18N[uiLang]||PZ_I18N.en; }
 
-let uiLang = localStorage.getItem('uiLang') || 'en';
-let filterLang = 'all';
-let hideDone = false;
-let allPuzzles = [];
-let doneSet = new Set(JSON.parse(localStorage.getItem('guestDone') || '[]'));
-const isLoggedIn = document.cookie.includes('sessionid') || !!localStorage.getItem('access_token');
+const PUZZLE_ID = window.location.pathname.split('/').filter(Boolean).pop();
+const LS_KEY    = `ws_prog_${PUZZLE_ID}`;
+let puzzle=null, foundWords=new Set(), isDone=false, foundCells=new Set();
+let dragging=false, startCell=null, curCells=[];
 
-function t(key) { return (i18n[uiLang] || i18n.en)[key] || key; }
+function getLP()  { try{return JSON.parse(localStorage.getItem(LS_KEY)||'{"found":[],"done":false}');}catch{return{found:[],done:false};} }
+function saveLP() { localStorage.setItem(LS_KEY,JSON.stringify({found:[...foundWords],done:isDone})); }
 
-function setUILang(lang) {
-  uiLang = lang;
-  localStorage.setItem('uiLang', lang);
-  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.ui === lang));
-  applyTranslations();
-  renderPuzzles();
+async function loadPuzzle() {
+  document.getElementById('backBtn').textContent  = tr().back;
+  document.getElementById('loadTxt').textContent  = tr().loading;
+  try {
+    const token=getToken();
+    const res=await fetch(`/api/wordsearch/${PUZZLE_ID}/`,{headers:token?{'Authorization':`Bearer ${token}`}:{}});
+    if(!res.ok) throw new Error();
+    puzzle=await res.json();
+    document.getElementById('pzTitle').textContent = puzzle.title;
+    const lt=document.getElementById('pzLang');
+    lt.textContent=puzzle.language_display; lt.className=`tag tag-${puzzle.language}`;
+    document.title=puzzle.title;
+    if(puzzle.progress){foundWords=new Set(puzzle.progress.found_words||[]); isDone=puzzle.progress.is_done;}
+    else { const lp=getLP(); foundWords=new Set(lp.found||[]); isDone=lp.done; }
+    updateDoneBtn(); renderAll();
+  } catch { document.getElementById('loadTxt').textContent='Puzzle not found.'; }
 }
 
-function applyTranslations() {
-  document.getElementById('pageTitle').textContent = t('title');
-  document.getElementById('pageSubtitle').textContent = t('subtitle');
-  document.getElementById('filterLabel').textContent = t('filter');
-  document.getElementById('f-all').textContent = t('all');
-  document.getElementById('doneToggle').textContent = hideDone ? t('showDone') : t('hideDone');
-  document.getElementById('createBtn').textContent = t('create');
-  document.getElementById('loadingMsg') && (document.getElementById('loadingMsg').textContent = t('loading'));
+function updateDoneBtn() {
+  const btn=document.getElementById('doneBtn');
+  btn.textContent = isDone ? tr().unmark : tr().markDone;
+  btn.classList.toggle('marked',isDone);
 }
 
-function setFilter(lang) {
-  filterLang = lang;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
-  renderPuzzles();
-}
-
-function toggleDoneFilter() {
-  hideDone = !hideDone;
-  document.getElementById('doneToggle').classList.toggle('active', hideDone);
-  document.getElementById('doneToggle').textContent = hideDone ? t('showDone') : t('hideDone');
-  renderPuzzles();
-}
-
-function isDone(puzzle) {
-  if (puzzle.is_done) return true;
-  return doneSet.has(puzzle.id);
-}
-
-function renderPuzzles() {
-  const grid = document.getElementById('puzzleGrid');
-  let puzzles = allPuzzles;
-
-  if (filterLang !== 'all') puzzles = puzzles.filter(p => p.language === filterLang);
-  if (hideDone) puzzles = puzzles.filter(p => !isDone(p));
-
-  if (puzzles.length === 0) {
-    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
-      <div class="empty-icon">🔍</div>
-      <div>${t('empty')}</div>
-      <div style="font-size:.85rem;margin-top:6px">${t('emptyHint')}</div>
+function renderAll() {
+  document.getElementById('playBody').innerHTML=`
+    <div class="grid-wrap"><div id="wsGrid"></div></div>
+    <div class="word-panel">
+      <div class="panel-title">${tr().wordsTitle}</div>
+      <div class="word-list" id="wordList"></div>
+      <div class="prog-bar-bg"><div class="prog-bar" id="pBar" style="width:0%"></div></div>
+      <div class="prog-txt"  id="pTxt"></div>
     </div>`;
-    return;
-  }
+  rebuildFoundCells(); renderGrid(); renderWords(); updateProgress(); attachEvents();
+}
 
-  grid.innerHTML = puzzles.map(p => {
-    const done = isDone(p);
-    return `
-    <a class="card${done ? ' is-done' : ''}" href="/wordsearch/${p.id}/">
-      ${done ? `<span class="done-badge">${t('done')}</span>` : ''}
-      <span class="card-lang ${p.language}">${p.language_display}</span>
-      <div class="card-title">${escHtml(p.title)}</div>
-      <div class="card-meta">${p.word_count} ${t('words')} · ${t('by')} ${escHtml(p.author)}</div>
-    </a>`;
+function rebuildFoundCells() {
+  foundCells=new Set();
+  for(const w of foundWords) markFound(w);
+}
+function markFound(word) {
+  if(!puzzle?.grid_data?.placements) return;
+  const pl=puzzle.grid_data.placements.find(p=>p.word===word); if(!pl) return;
+  const {row,col,direction}=pl, dr=direction==='V'?1:0, dc=direction==='H'?1:0;
+  for(let i=0;i<word.length;i++) foundCells.add(`${row+i*dr},${col+i*dc}`);
+}
+
+function renderGrid() {
+  const grd=document.getElementById('wsGrid');
+  const g=puzzle.grid_data.grid; const sz=g.length;
+  grd.style.gridTemplateColumns=`repeat(${sz},36px)`;
+  grd.innerHTML=g.map((row,r)=>row.map((l,c)=>{
+    const k=`${r},${c}`;
+    return `<div class="cell${foundCells.has(k)?' found':''}" data-r="${r}" data-c="${c}">${l}</div>`;
+  }).join('')).join('');
+}
+
+function renderWords() {
+  document.getElementById('wordList').innerHTML=puzzle.words.map(w=>{
+    const f=foundWords.has(w.word);
+    return `<div class="word-item${f?' found-word':''}" id="wi-${w.word}">${f?'<span class="ck">✓</span>':''}${w.word}</div>`;
   }).join('');
 }
 
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function updateProgress() {
+  const total=puzzle.words.length, done=foundWords.size;
+  const pct=total?done/total*100:0;
+  const bar=document.getElementById('pBar'); if(bar)bar.style.width=pct+'%';
+  const txt=document.getElementById('pTxt'); if(txt)txt.textContent=`${done} / ${total} ${tr().found}`;
 }
 
-async function loadPuzzles() {
-  try {
-    const token = localStorage.getItem('access_token');
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const res = await fetch(API, { headers });
-    const data = await res.json();
-    allPuzzles = Array.isArray(data) ? data : (data.results || []);
-
-    // Показуємо кнопку "Створити" для вчителів/адмінів
-    const me = JSON.parse(localStorage.getItem('me') || 'null');
-    if (me && (me.role === 'teacher' || me.role === 'admin')) {
-      document.getElementById('createBtn').style.display = 'inline-flex';
-    }
-
-    renderPuzzles();
-  } catch (e) {
-    document.getElementById('puzzleGrid').innerHTML =
-      `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">⚠️</div><div>Failed to load puzzles</div></div>`;
-  }
+/* Drag */
+function attachEvents() {
+  const grd=document.getElementById('wsGrid');
+  grd.addEventListener('mousedown',e=>{const c=e.target.closest('.cell');if(!c)return; dragging=true; startCell={r:+c.dataset.r,c:+c.dataset.c}; curCells=[startCell]; highlight([startCell]); e.preventDefault();});
+  grd.addEventListener('mousemove',e=>{if(!dragging)return; const c=e.target.closest('.cell');if(!c)return; curCells=getLine(startCell,{r:+c.dataset.r,c:+c.dataset.c}); highlight(curCells);});
+  document.addEventListener('mouseup',()=>{if(!dragging)return; dragging=false; checkSel(curCells); clearSel();});
+  grd.addEventListener('touchstart',e=>{const t=e.touches[0],c=document.elementFromPoint(t.clientX,t.clientY)?.closest('.cell');if(!c)return; dragging=true; startCell={r:+c.dataset.r,c:+c.dataset.c}; curCells=[startCell]; highlight([startCell]); e.preventDefault();},{passive:false});
+  grd.addEventListener('touchmove',e=>{if(!dragging)return; const t=e.touches[0],c=document.elementFromPoint(t.clientX,t.clientY)?.closest('.cell');if(!c)return; curCells=getLine(startCell,{r:+c.dataset.r,c:+c.dataset.c}); highlight(curCells); e.preventDefault();},{passive:false});
+  document.addEventListener('touchend',()=>{if(!dragging)return; dragging=false; checkSel(curCells); clearSel();});
 }
 
-// Init
-setUILang(uiLang);
-applyTranslations();
-loadPuzzles();
+function getLine(s,e) {
+  const dr=e.r-s.r, dc=e.c-s.c;
+  const isH=dr===0, isV=dc===0;
+  if(!isH&&!isV) return Math.abs(dr)>Math.abs(dc)?buildLine(s,{r:e.r,c:s.c}):buildLine(s,{r:s.r,c:e.c});
+  return buildLine(s,e);
+}
+function buildLine(s,e) {
+  const cells=[], dr=Math.sign(e.r-s.r), dc=Math.sign(e.c-s.c);
+  const steps=Math.max(Math.abs(e.r-s.r),Math.abs(e.c-s.c));
+  let r=s.r,c=s.c;
+  for(let i=0;i<=steps;i++){cells.push({r,c}); r+=dr; c+=dc;}
+  return cells;
+}
+function highlight(cells) {
+  document.querySelectorAll('.cell.selecting').forEach(el=>el.classList.remove('selecting'));
+  cells.forEach(({r,c})=>document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`)?.classList.add('selecting'));
+}
+function clearSel() { document.querySelectorAll('.cell.selecting').forEach(el=>el.classList.remove('selecting')); }
+
+function checkSel(cells) {
+  const g=puzzle.grid_data.grid;
+  const word=cells.map(({r,c})=>g[r][c]).join('');
+  const rev=word.split('').reverse().join('');
+  const match=puzzle.words.map(w=>w.word).find(w=>w===word||w===rev);
+  if(match&&!foundWords.has(match)) onFound(match,cells);
+}
+
+async function onFound(word,cells) {
+  foundWords.add(word); markFound(word);
+  cells.forEach(({r,c})=>{ const el=document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`); if(el){el.classList.add('found');el.classList.remove('selecting');}});
+  const wi=document.getElementById(`wi-${word}`);
+  if(wi){wi.classList.add('found-word'); wi.innerHTML=`<span class="ck">✓</span>${word}`;}
+  updateProgress();
+  const token=getToken();
+  if(token) { try{await fetch(`/api/wordsearch/${PUZZLE_ID}/found/`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({word})});}catch{} }
+  else { saveLP(); }
+  const placed=puzzle.grid_data.placed_words||[];
+  if(placed.every(w=>foundWords.has(w))) setTimeout(showComplete,600);
+}
+
+function showComplete() {
+  const t=tr();
+  document.getElementById('completeHd').textContent   = t.allFound;
+  document.getElementById('completeSub').textContent  = t.congrats;
+  document.getElementById('completeBack').textContent = t.backList;
+  document.getElementById('completeOverlay').classList.add('show');
+  if(!getToken()){isDone=true;saveLP();}
+}
+
+async function toggleDone() {
+  isDone=!isDone; updateDoneBtn();
+  const token=getToken();
+  if(token){try{await fetch(`/api/wordsearch/${PUZZLE_ID}/done/`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({is_done:isDone})});}catch{}}
+  else saveLP();
+}
+
+window.setUILang=function(lang){uiLang=lang;localStorage.setItem('uiLang',lang);applyTranslations();if(puzzle)renderAll();else document.getElementById('backBtn').textContent=tr().back;updateDoneBtn();};
+loadPuzzle();
 </script>
-</body>
-</html>
+{% endblock %}
