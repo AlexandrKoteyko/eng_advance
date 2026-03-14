@@ -1,273 +1,256 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Create Puzzle</title>
+{% extends "base.html" %}
+{% block title %}Create Puzzle — LangLearn{% endblock %}
+{% block nav_ws %}active{% endblock %}
+
+{% block extra_head %}
 <style>
-  :root {
-    --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
-    --accent: #6c63ff; --text: #e8eaf0; --muted: #8b92a8;
-    --border: #2d3248; --error: #fc8181; --success: #68d391; --radius: 12px;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+.cr-wrap { max-width:660px; margin:0 auto; padding:44px 20px 60px; }
+.cr-hd { font-family:var(--font-head); font-size:1.9rem; font-weight:800; letter-spacing:-1px; margin-bottom:28px; color:var(--text); }
+.cr-card { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:32px; box-shadow:var(--shadow); }
 
-  header {
-    background: var(--surface); border-bottom: 1px solid var(--border);
-    padding: 14px 28px; display: flex; align-items: center; gap: 16px;
-  }
-  .back-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size:.9rem; text-decoration:none; }
-  h1 { font-size: 1.15rem; font-weight: 700; }
+.row2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media(max-width:480px){ .row2 { grid-template-columns:1fr; } }
 
-  main { max-width: 680px; margin: 40px auto; padding: 0 24px; }
+/* Toggle */
+.tog-row { display:flex; align-items:center; gap:10px; margin-top:2px; }
+.tog {
+  position:relative; width:42px; height:23px; cursor:pointer;
+  background:var(--surface2); border-radius:12px; border:1px solid var(--border);
+  transition:background var(--transition), border-color var(--transition); flex-shrink:0;
+}
+.tog.on { background:var(--accent); border-color:var(--accent); }
+.tog::after { content:''; position:absolute; top:2px; left:2px; width:17px; height:17px; background:#fff; border-radius:50%; transition:transform var(--transition); }
+.tog.on::after { transform:translateX(19px); }
+.tog-lbl { font-size:.9rem; color:var(--text2); }
 
-  .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; }
+/* Word input modes */
+.input-mode { display:flex; gap:6px; margin-bottom:10px; }
+.mode-btn {
+  padding:5px 12px; border-radius:7px; font-size:.78rem; font-weight:600;
+  border:1px solid var(--border); background:transparent; color:var(--muted);
+  cursor:pointer; transition:all var(--transition); font-family:var(--font-body);
+}
+.mode-btn.active { background:var(--surface2); color:var(--text); border-color:var(--accent); }
 
-  .field { margin-bottom: 22px; }
-  label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
-  input[type=text], select {
-    width: 100%; padding: 11px 14px; background: var(--surface2);
-    border: 1px solid var(--border); border-radius: 8px; color: var(--text);
-    font-size: .95rem; outline: none; transition: border-color .2s;
-  }
-  input[type=text]:focus, select:focus { border-color: var(--accent); }
-  select option { background: var(--surface2); }
+/* Comma textarea */
+.comma-wrap { position:relative; }
+#commaInput {
+  width:100%; min-height:90px; resize:vertical; padding:11px 14px;
+  background:var(--bg2); border:1px solid var(--border); border-radius:10px;
+  color:var(--text); font-size:.95rem; font-family:var(--font-body); outline:none;
+  transition:border-color var(--transition); line-height:1.5;
+}
+#commaInput:focus { border-color:var(--accent); }
+.comma-hint { font-size:.72rem; color:var(--muted); margin-top:4px; }
+.comma-preview { display:flex; flex-wrap:wrap; gap:5px; margin-top:10px; min-height:24px; }
+.preview-tag {
+  padding:3px 9px; border-radius:12px; font-size:.75rem; font-weight:600;
+  background:var(--surface2); color:var(--text); border:1px solid var(--border);
+}
 
-  .toggle-row { display: flex; align-items: center; gap: 12px; }
-  .toggle {
-    position: relative; width: 44px; height: 24px;
-    background: var(--surface2); border-radius: 12px; cursor: pointer;
-    border: 1px solid var(--border); transition: background .2s;
-  }
-  .toggle.on { background: var(--accent); border-color: var(--accent); }
-  .toggle::after {
-    content: ''; position: absolute; top: 2px; left: 2px;
-    width: 18px; height: 18px; background: white; border-radius: 50%;
-    transition: transform .2s;
-  }
-  .toggle.on::after { transform: translateX(20px); }
-  .toggle-label { font-size: .95rem; }
+/* Manual rows */
+.word-rows  { display:flex; flex-direction:column; gap:7px; }
+.word-row   { display:flex; gap:7px; }
+.word-row input { flex:1; }
+.word-row .hint-in { flex:1.3; }
+.rm-btn {
+  width:32px; height:32px; flex-shrink:0; border-radius:7px;
+  border:1px solid var(--border); background:transparent; color:var(--muted);
+  cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center;
+  transition:all var(--transition);
+}
+.rm-btn:hover { border-color:#f87171; color:#f87171; }
+.add-row-btn {
+  width:100%; padding:8px; margin-top:4px; border-radius:8px;
+  border:1px dashed var(--border); background:transparent; color:var(--muted);
+  cursor:pointer; font-size:.85rem; transition:all var(--transition); font-family:var(--font-body);
+}
+.add-row-btn:hover { border-color:var(--accent); color:var(--text); }
 
-  /* Words area */
-  .words-area { display: flex; flex-direction: column; gap: 10px; }
-  .word-row { display: flex; gap: 8px; align-items: center; }
-  .word-row input { flex: 1; }
-  .word-row .hint-input { flex: 1.5; }
-  .remove-btn {
-    background: transparent; border: 1px solid var(--border); color: var(--muted);
-    width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 1rem;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    transition: border-color .2s, color .2s;
-  }
-  .remove-btn:hover { border-color: var(--error); color: var(--error); }
-
-  .add-word-btn {
-    background: transparent; border: 1px dashed var(--border); color: var(--muted);
-    padding: 9px; border-radius: 8px; cursor: pointer; width: 100%;
-    font-size: .9rem; transition: border-color .2s, color .2s; margin-top: 4px;
-  }
-  .add-word-btn:hover { border-color: var(--accent); color: var(--text); }
-
-  .hint-label { font-size: .78rem; color: var(--muted); margin-bottom: 4px; display: flex; gap: 20px; }
-  .hint-label span:first-child { flex: 1; } .hint-label span:last-child { flex: 1.5; }
-
-  .submit-btn {
-    width: 100%; padding: 13px; background: var(--accent); color: #fff;
-    border: none; border-radius: 10px; font-size: 1rem; font-weight: 700;
-    cursor: pointer; margin-top: 8px; transition: opacity .2s;
-  }
-  .submit-btn:hover { opacity: .85; }
-  .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
-
-  .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 18px; font-size: .9rem; }
-  .alert.error { background: rgba(252,129,129,.1); border: 1px solid var(--error); color: var(--error); }
-  .alert.success { background: rgba(104,211,145,.1); border: 1px solid var(--success); color: var(--success); }
+.submit-btn {
+  width:100%; padding:13px; background:var(--accent); color:#fff;
+  border:none; border-radius:10px; font-size:1rem; font-weight:700;
+  cursor:pointer; margin-top:8px; transition:opacity var(--transition); font-family:var(--font-body);
+}
+.submit-btn:hover { opacity:.85; }
+.submit-btn:disabled { opacity:.45; cursor:not-allowed; }
+.col-hints { display:flex; gap:7px; font-size:.7rem; color:var(--muted); margin-bottom:4px; }
+.col-hints span:first-child{ flex:1; } .col-hints span:last-child{ flex:1.3; }
 </style>
-</head>
-<body>
+{% endblock %}
 
-<header>
-  <a href="/wordsearch/" class="back-btn">←</a>
-  <h1 id="pageTitle">Create Word Search Puzzle</h1>
-</header>
-
-<main>
-  <div class="form-card">
+{% block content %}
+<div class="cr-wrap">
+  <h1 class="cr-hd" id="crHd"></h1>
+  <div class="cr-card">
     <div id="alertBox"></div>
 
     <div class="field">
-      <label id="lblTitle">Puzzle title</label>
-      <input type="text" id="title" placeholder="e.g. Animals in English">
+      <label class="form-label" id="lblTitle"></label>
+      <input type="text" id="pzTitle">
     </div>
 
-    <div class="field">
-      <label id="lblLang">Language</label>
-      <select id="language">
-        <option value="en">🇬🇧 English</option>
-        <option value="uk">🇺🇦 Українська</option>
-        <option value="fi">🇫🇮 Suomi</option>
-      </select>
-    </div>
-
-    <div class="field">
-      <label id="lblPublic">Visibility</label>
-      <div class="toggle-row">
-        <div class="toggle" id="publicToggle" onclick="togglePublic()"></div>
-        <span class="toggle-label" id="publicLabel">Private</span>
+    <div class="row2">
+      <div class="field">
+        <label class="form-label" id="lblLang"></label>
+        <select id="language">
+          <option value="en">🇬🇧 English</option>
+          <option value="uk">🇺🇦 Українська</option>
+          <option value="fi">🇫🇮 Suomi</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="form-label" id="lblVis"></label>
+        <div class="tog-row">
+          <div class="tog" id="pubTog" onclick="togPub()"></div>
+          <span class="tog-lbl" id="pubLbl"></span>
+        </div>
       </div>
     </div>
 
     <div class="field">
-      <label id="lblWords">Words</label>
-      <div class="hint-label">
-        <span id="hintWord">Word</span>
-        <span id="hintHint">Hint (optional)</span>
+      <label class="form-label" id="lblWords"></label>
+      <!-- Mode switcher -->
+      <div class="input-mode">
+        <button class="mode-btn active" id="modeComma"  onclick="setMode('comma')"></button>
+        <button class="mode-btn"        id="modeManual" onclick="setMode('manual')"></button>
       </div>
-      <div class="words-area" id="wordsArea"></div>
-      <button class="add-word-btn" onclick="addWordRow()" id="addWordBtn">+ Add word</button>
+
+      <!-- Comma mode -->
+      <div id="commaSection">
+        <div class="comma-wrap">
+          <textarea id="commaInput" oninput="previewWords()" id="commaInput"></textarea>
+        </div>
+        <div class="comma-hint" id="commaHint"></div>
+        <div class="comma-preview" id="commaPreview"></div>
+      </div>
+
+      <!-- Manual mode -->
+      <div id="manualSection" style="display:none">
+        <div class="col-hints"><span id="colWord"></span><span id="colHint"></span></div>
+        <div class="word-rows" id="wordRows"></div>
+        <button class="add-row-btn" id="addRowBtn" onclick="addRow()"></button>
+      </div>
     </div>
 
-    <button class="submit-btn" id="submitBtn" onclick="submitForm()">
-      <span id="submitLabel">Generate & Save</span>
+    <button class="submit-btn" id="submitBtn" onclick="submit()">
+      <span id="submitLbl"></span>
     </button>
   </div>
-</main>
+</div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-const API = '/api/wordsearch/create/';
-const token = localStorage.getItem('access_token');
-const uiLang = localStorage.getItem('uiLang') || 'en';
-
-const i18n = {
-  en: {
-    pageTitle: 'Create Word Search Puzzle', title: 'Puzzle title', lang: 'Language',
-    public: 'Visibility', private: 'Private', publicText: 'Public',
-    words: 'Words', hintWord: 'Word', hintHint: 'Hint (optional)',
-    addWord: '+ Add word', submit: 'Generate & Save', submitting: 'Generating...',
-    success: 'Puzzle created! Redirecting...',
-    errTitle: 'Please enter a title', errWords: 'Add at least 2 words',
-    errAuth: 'You must be logged in as teacher or admin',
-  },
-  uk: {
-    pageTitle: 'Створити філворд', title: 'Назва завдання', lang: 'Мова',
-    public: 'Доступ', private: 'Приватне', publicText: 'Публічне',
-    words: 'Слова', hintWord: 'Слово', hintHint: 'Підказка (необовʼязково)',
-    addWord: '+ Додати слово', submit: 'Згенерувати та зберегти', submitting: 'Генерую...',
-    success: 'Завдання створено! Переходжу...',
-    errTitle: 'Введіть назву', errWords: 'Додайте хоча б 2 слова',
-    errAuth: 'Потрібно увійти як вчитель або адмін',
-  },
-  fi: {
-    pageTitle: 'Luo täytäpeli', title: 'Tehtävän nimi', lang: 'Kieli',
-    public: 'Näkyvyys', private: 'Yksityinen', publicText: 'Julkinen',
-    words: 'Sanat', hintWord: 'Sana', hintHint: 'Vihje (valinnainen)',
-    addWord: '+ Lisää sana', submit: 'Luo ja tallenna', submitting: 'Luodaan...',
-    success: 'Tehtävä luotu! Siirrytään...',
-    errTitle: 'Anna nimi', errWords: 'Lisää vähintään 2 sanaa',
-    errAuth: 'Kirjaudu sisään opettajana tai ylläpitäjänä',
-  },
+const CRI = {
+  en:{hd:'Create Word Search',title:'Puzzle title',lang:'Language',vis:'Visibility',priv:'Private',pub:'Public',words:'Words',modeComma:'Comma list',modeManual:'One by one',commaHint:'Enter words separated by commas. Example: CAT, DOG, BIRD',colWord:'Word',colHint:'Hint (optional)',addRow:'+ Add word',submit:'Generate & Save',submitting:'Generating…',errTitle:'Enter a title',errWords:'Add at least 2 words',errAuth:'Login as teacher or admin',ok:'Created! Redirecting…'},
+  uk:{hd:'Створити філворд',title:'Назва завдання',lang:'Мова',vis:'Доступ',priv:'Приватне',pub:'Публічне',words:'Слова',modeComma:'Через кому',modeManual:'По одному',commaHint:'Введіть слова через кому. Приклад: КІТ, ПЕС, ПТАХ',colWord:'Слово',colHint:'Підказка (необов\'язково)',addRow:'+ Додати слово',submit:'Згенерувати та зберегти',submitting:'Генерую…',errTitle:'Введіть назву',errWords:'Додайте хоча б 2 слова',errAuth:'Увійдіть як вчитель або адмін',ok:'Створено! Переходжу…'},
+  fi:{hd:'Luo täytäpeli',title:'Tehtävän nimi',lang:'Kieli',vis:'Näkyvyys',priv:'Yksityinen',pub:'Julkinen',words:'Sanat',modeComma:'Pilkulla erotettu',modeManual:'Yksitellen',commaHint:'Kirjoita sanat pilkuilla erotettuina. Esimerkki: KISSA, KOIRA',colWord:'Sana',colHint:'Vihje (valinnainen)',addRow:'+ Lisää sana',submit:'Luo ja tallenna',submitting:'Luodaan…',errTitle:'Anna nimi',errWords:'Lisää vähintään 2 sanaa',errAuth:'Kirjaudu opettajana tai ylläpitäjänä',ok:'Luotu! Siirrytään…'},
 };
-function t(k) { return (i18n[uiLang]||i18n.en)[k]||k; }
+function tr() { return CRI[uiLang]||CRI.en; }
 
-// Apply translations
-document.getElementById('pageTitle').textContent = t('pageTitle');
-document.getElementById('lblTitle').textContent = t('title');
-document.getElementById('lblLang').textContent = t('lang');
-document.getElementById('lblPublic').textContent = t('public');
-document.getElementById('lblWords').textContent = t('words');
-document.getElementById('hintWord').textContent = t('hintWord');
-document.getElementById('hintHint').textContent = t('hintHint');
-document.getElementById('addWordBtn').textContent = t('addWord');
-document.getElementById('submitLabel').textContent = t('submit');
-document.getElementById('publicLabel').textContent = t('private');
+let isPublic=false, rowId=0, mode='comma';
+const me=getMe();
+// Both teacher AND admin can create
+if (!me || (me.role!=='teacher' && me.role!=='admin')) { window.location.href='/wordsearch/'; }
 
-let isPublic = false;
-
-function togglePublic() {
-  isPublic = !isPublic;
-  document.getElementById('publicToggle').classList.toggle('on', isPublic);
-  document.getElementById('publicLabel').textContent = isPublic ? t('publicText') : t('private');
+function applyUI() {
+  const t=tr();
+  document.getElementById('crHd').textContent      = t.hd;
+  document.getElementById('lblTitle').textContent  = t.title;
+  document.getElementById('lblLang').textContent   = t.lang;
+  document.getElementById('lblVis').textContent    = t.vis;
+  document.getElementById('pubLbl').textContent    = isPublic?t.pub:t.priv;
+  document.getElementById('lblWords').textContent  = t.words;
+  document.getElementById('modeComma').textContent = t.modeComma;
+  document.getElementById('modeManual').textContent= t.modeManual;
+  document.getElementById('commaHint').textContent = t.commaHint;
+  document.getElementById('colWord').textContent   = t.colWord;
+  document.getElementById('colHint').textContent   = t.colHint;
+  document.getElementById('addRowBtn').textContent = t.addRow;
+  document.getElementById('submitLbl').textContent = t.submit;
+  document.getElementById('commaInput').placeholder= t.commaHint;
 }
 
-let wordCount = 0;
-
-function addWordRow(word='', hint='') {
-  wordCount++;
-  const id = wordCount;
-  const row = document.createElement('div');
-  row.className = 'word-row';
-  row.id = `wr-${id}`;
-  row.innerHTML = `
-    <input type="text" class="word-input" placeholder="${t('hintWord')} ${id}" value="${escAttr(word)}">
-    <input type="text" class="hint-input" placeholder="${t('hintHint')}" value="${escAttr(hint)}">
-    <button class="remove-btn" onclick="removeRow(${id})">×</button>
-  `;
-  document.getElementById('wordsArea').appendChild(row);
+function togPub() {
+  isPublic=!isPublic;
+  document.getElementById('pubTog').classList.toggle('on',isPublic);
+  document.getElementById('pubLbl').textContent=isPublic?tr().pub:tr().priv;
 }
 
-function removeRow(id) {
-  const el = document.getElementById(`wr-${id}`);
-  if (el) el.remove();
+function setMode(m) {
+  mode=m;
+  document.getElementById('modeComma').classList.toggle('active',m==='comma');
+  document.getElementById('modeManual').classList.toggle('active',m==='manual');
+  document.getElementById('commaSection').style.display  = m==='comma' ?'block':'none';
+  document.getElementById('manualSection').style.display = m==='manual'?'block':'none';
 }
 
-function escAttr(s) { return String(s).replace(/"/g,'&quot;'); }
-
-function showAlert(msg, type) {
-  document.getElementById('alertBox').innerHTML =
-    `<div class="alert ${type}">${msg}</div>`;
+function previewWords() {
+  const raw=document.getElementById('commaInput').value;
+  const words=raw.split(',').map(w=>w.trim().toUpperCase()).filter(Boolean);
+  document.getElementById('commaPreview').innerHTML=
+    words.map(w=>`<span class="preview-tag">${escHtml(w)}</span>`).join('');
 }
 
-async function submitForm() {
-  if (!token) { showAlert(t('errAuth'), 'error'); return; }
+function addRow(w='',h='') {
+  rowId++;
+  const id=rowId, div=document.createElement('div');
+  div.className='word-row'; div.id=`wr-${id}`;
+  div.innerHTML=`<input type="text" class="wi" placeholder="${tr().colWord} ${id}" value="${escHtml(w)}">
+    <input type="text" class="hi hint-in" placeholder="${tr().colHint}" value="${escHtml(h)}">
+    <button class="rm-btn" onclick="document.getElementById('wr-${id}').remove()">×</button>`;
+  document.getElementById('wordRows').appendChild(div);
+}
 
-  const title = document.getElementById('title').value.trim();
-  if (!title) { showAlert(t('errTitle'), 'error'); return; }
+async function submit() {
+  const t=tr();
+  const title=document.getElementById('pzTitle').value.trim();
+  if (!title) { showAlert(t.errTitle,'error'); return; }
+  const language=document.getElementById('language').value;
+  const token=getToken();
+  if (!token) { showAlert(t.errAuth,'error'); return; }
 
-  const language = document.getElementById('language').value;
+  let words=[];
+  if (mode==='comma') {
+    const raw=document.getElementById('commaInput').value;
+    words=raw.split(',').map(w=>w.trim()).filter(Boolean).map(w=>({word:w,hint:''}));
+  } else {
+    document.querySelectorAll('.word-row').forEach(row=>{
+      const w=row.querySelector('.wi').value.trim(), h=row.querySelector('.hi').value.trim();
+      if(w) words.push({word:w,hint:h});
+    });
+  }
 
-  const wordRows = document.querySelectorAll('.word-row');
-  const words = [];
-  wordRows.forEach(row => {
-    const word = row.querySelector('.word-input').value.trim();
-    const hint = row.querySelector('.hint-input').value.trim();
-    if (word) words.push({ word, hint });
-  });
+  if (words.length<2) { showAlert(t.errWords,'error'); return; }
 
-  if (words.length < 2) { showAlert(t('errWords'), 'error'); return; }
-
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = true;
-  document.getElementById('submitLabel').textContent = t('submitting');
+  const btn=document.getElementById('submitBtn'); btn.disabled=true;
+  document.getElementById('submitLbl').textContent=t.submitting;
+  document.getElementById('alertBox').innerHTML='';
 
   try {
-    const res = await fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ title, language, is_public: isPublic, words }),
+    const res=await fetch('/api/wordsearch/create/',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+      body:JSON.stringify({title,language,is_public:isPublic,words}),
     });
-
-    if (!res.ok) {
-      const err = await res.json();
-      const msg = Object.values(err).flat().join(' ');
-      showAlert(msg, 'error');
-      btn.disabled = false;
-      document.getElementById('submitLabel').textContent = t('submit');
-      return;
-    }
-
-    const data = await res.json();
-    showAlert(t('success'), 'success');
-    setTimeout(() => window.location.href = `/wordsearch/${data.id}/`, 1200);
-  } catch (e) {
-    showAlert('Network error', 'error');
-    btn.disabled = false;
-    document.getElementById('submitLabel').textContent = t('submit');
+    const data=await res.json();
+    if (!res.ok) { showAlert(Object.values(data).flat().join(' '),'error'); btn.disabled=false; document.getElementById('submitLbl').textContent=t.submit; return; }
+    showAlert(t.ok,'success');
+    setTimeout(()=>window.location.href=`/wordsearch/${data.id}/`,1100);
+  } catch {
+    showAlert('Network error','error');
+    btn.disabled=false; document.getElementById('submitLbl').textContent=t.submit;
   }
 }
 
-// Init with 3 empty rows
-addWordRow(); addWordRow(); addWordRow();
+function showAlert(msg,type) {
+  document.getElementById('alertBox').innerHTML=`<div class="alert alert-${type}">${msg}</div>`;
+}
+
+window.setUILang=function(lang){uiLang=lang;localStorage.setItem('uiLang',lang);applyTranslations();applyUI();};
+applyUI();
+// Start with 1 manual row (hidden by default)
+addRow(); addRow(); addRow();
 </script>
-</body>
-</html>
+{% endblock %}

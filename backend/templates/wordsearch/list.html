@@ -1,290 +1,202 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Філворди</title>
+{% extends "base.html" %}
+{% block title %}{% if uiLang == 'uk' %}Філворди{% elif uiLang == 'fi' %}Täytäpelat{% else %}Word Search{% endif %} — LangLearn{% endblock %}
+{% block nav_ws %}active{% endblock %}
+
+{% block extra_head %}
 <style>
-  :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #22263a;
-    --accent: #6c63ff;
-    --accent2: #48bb78;
-    --text: #e8eaf0;
-    --muted: #8b92a8;
-    --border: #2d3248;
-    --done: #2d4a3e;
-    --done-text: #68d391;
-    --radius: 12px;
-    --en: #4299e1;
-    --uk: #f6ad55;
-    --fi: #68d391;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+.ws-wrap { max-width:1100px; margin:0 auto; padding:44px 20px 60px; }
 
-  header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 16px 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-  }
-  .logo { font-size: 1.3rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
-  .lang-switcher { display: flex; gap: 8px; }
-  .lang-btn {
-    padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
-    background: transparent; color: var(--muted); cursor: pointer; font-size: 0.85rem; transition: all .2s;
-  }
-  .lang-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.page-hd { font-family:var(--font-head); font-size:clamp(1.7rem,3.5vw,2.5rem); font-weight:800; letter-spacing:-1px; margin-bottom:6px; color:var(--text); }
+.page-sub { color:var(--muted); margin-bottom:32px; font-size:.95rem; }
 
-  main { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+/* Toolbar */
+.toolbar {
+  display:flex; align-items:center; gap:8px;
+  margin-bottom:28px; flex-wrap:wrap;
+}
+.filter-pill {
+  padding:6px 15px; border-radius:20px; border:1px solid var(--border);
+  background:var(--surface); color:var(--muted); cursor:pointer;
+  font-size:.8rem; font-weight:600; transition:all var(--transition);
+  font-family:var(--font-body); white-space:nowrap;
+}
+.filter-pill:hover { border-color:var(--accent); color:var(--text); }
+.filter-pill.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+.filter-pill[data-lang="en"].active { background:#4f8ef7; border-color:#4f8ef7; }
+.filter-pill[data-lang="uk"].active { background:#c9a227; border-color:#c9a227; }
+.filter-pill[data-lang="fi"].active { background:#1aaa82; border-color:#1aaa82; }
 
-  .page-title { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
-  .page-subtitle { color: var(--muted); margin-bottom: 32px; }
+.spacer { flex:1; }
 
-  .toolbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 28px;
-    flex-wrap: wrap;
-  }
-  .filter-label { color: var(--muted); font-size: 0.9rem; }
-  .filter-btn {
-    padding: 7px 18px; border-radius: 20px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--muted); cursor: pointer; font-size: 0.85rem;
-    transition: all .2s; font-weight: 500;
-  }
-  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
-  .filter-btn.active { border-color: var(--accent); background: var(--accent); color: #fff; }
-  .filter-btn[data-lang="en"].active { background: var(--en); border-color: var(--en); }
-  .filter-btn[data-lang="uk"].active { background: var(--uk); border-color: var(--uk); color: #1a1d27; }
-  .filter-btn[data-lang="fi"].active { background: var(--fi); border-color: var(--fi); color: #1a1d27; }
+.done-pill {
+  padding:6px 15px; border-radius:20px; border:1px solid var(--border);
+  background:var(--surface); color:var(--muted); cursor:pointer;
+  font-size:.8rem; font-weight:600; transition:all var(--transition);
+  font-family:var(--font-body); white-space:nowrap;
+}
+.done-pill.active { background:rgba(56,217,169,.12); color:var(--accent2); border-color:var(--accent2); }
 
-  .filter-done-btn {
-    margin-left: auto;
-    padding: 7px 18px; border-radius: 20px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--muted); cursor: pointer; font-size: 0.85rem;
-    transition: all .2s;
-  }
-  .filter-done-btn.active { background: var(--done); color: var(--done-text); border-color: var(--done-text); }
+.create-btn {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--accent); color:#fff; padding:7px 16px;
+  border-radius:9px; text-decoration:none; font-weight:700; font-size:.82rem;
+  transition:opacity var(--transition); white-space:nowrap;
+}
+.create-btn:hover { opacity:.85; }
 
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 18px;
-  }
+/* Cards */
+.cards {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:16px;
+}
+.ws-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:18px 20px;
+  text-decoration:none; display:block; position:relative;
+  transition:border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+.ws-card:hover { border-color:var(--accent); transform:translateY(-3px); box-shadow:var(--shadow); }
+.ws-card.done-card { border-color:rgba(56,217,169,.3); }
+[data-theme="light"] .ws-card.done-card { background:#f2fbf8; }
 
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    cursor: pointer;
-    transition: transform .2s, border-color .2s, box-shadow .2s;
-    text-decoration: none;
-    display: block;
-    position: relative;
-  }
-  .card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: 0 8px 32px rgba(108,99,255,.15); }
-  .card.is-done { border-color: #2d4a3e; background: #151f1a; }
+.done-badge {
+  position:absolute; top:13px; right:13px;
+  background:rgba(56,217,169,.15); color:var(--accent2);
+  font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:10px;
+}
+.card-title { font-family:var(--font-head); font-size:.97rem; font-weight:700; margin:9px 0 4px; color:var(--text); }
+.card-meta  { font-size:.76rem; color:var(--muted); }
 
-  .card-lang {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-bottom: 12px;
-  }
-  .card-lang.en { background: rgba(66,153,225,.2); color: var(--en); }
-  .card-lang.uk { background: rgba(246,173,85,.2); color: var(--uk); }
-  .card-lang.fi { background: rgba(104,211,145,.2); color: var(--fi); }
-
-  .card-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; }
-  .card-meta { font-size: 0.82rem; color: var(--muted); }
-
-  .done-badge {
-    position: absolute; top: 14px; right: 14px;
-    background: var(--done); color: var(--done-text);
-    font-size: 0.72rem; padding: 3px 8px; border-radius: 10px; font-weight: 600;
-  }
-
-  .empty { text-align: center; padding: 80px 0; color: var(--muted); }
-  .empty-icon { font-size: 3rem; margin-bottom: 12px; }
-
-  .create-btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: var(--accent); color: #fff;
-    padding: 10px 22px; border-radius: 8px; border: none;
-    font-size: 0.95rem; font-weight: 600; cursor: pointer;
-    text-decoration: none; transition: opacity .2s;
-    margin-left: auto;
-  }
-  .create-btn:hover { opacity: .85; }
-
-  .loading { text-align: center; padding: 60px; color: var(--muted); }
+.empty {
+  grid-column:1/-1; text-align:center; padding:72px 20px; color:var(--muted);
+}
+.empty-icon { font-size:2.6rem; margin-bottom:10px; }
+.empty-hint { font-size:.82rem; margin-top:4px; }
 </style>
-</head>
-<body>
+{% endblock %}
 
-<header>
-  <div class="logo">🔤 LangLearn</div>
-  <div class="lang-switcher">
-    <button class="lang-btn" data-ui="uk" onclick="setUILang('uk')">UA</button>
-    <button class="lang-btn active" data-ui="en" onclick="setUILang('en')">EN</button>
-    <button class="lang-btn" data-ui="fi" onclick="setUILang('fi')">FI</button>
-  </div>
-</header>
-
-<main>
-  <h1 class="page-title" id="pageTitle">Word Search Puzzles</h1>
-  <p class="page-subtitle" id="pageSubtitle">Choose a puzzle and find all hidden words</p>
+{% block content %}
+<div class="ws-wrap">
+  <h1 class="page-hd" id="pageHd"></h1>
+  <p  class="page-sub" id="pageSub"></p>
 
   <div class="toolbar">
-    <span class="filter-label" id="filterLabel">Filter by language:</span>
-    <button class="filter-btn active" data-lang="all" onclick="setFilter('all')" id="f-all">All</button>
-    <button class="filter-btn" data-lang="en" onclick="setFilter('en')" id="f-en">🇬🇧 English</button>
-    <button class="filter-btn" data-lang="uk" onclick="setFilter('uk')" id="f-uk">🇺🇦 Ukrainian</button>
-    <button class="filter-btn" data-lang="fi" onclick="setFilter('fi')" id="f-fi">🇫🇮 Finnish</button>
-    <button class="filter-done-btn" id="doneToggle" onclick="toggleDoneFilter()">Hide done</button>
-    <a href="/wordsearch/create/" class="create-btn" id="createBtn" style="display:none">+ Create</a>
+    <button class="filter-pill active" data-lang="all" onclick="setFilter('all')" id="f-all"></button>
+    <button class="filter-pill" data-lang="en"  onclick="setFilter('en')"  id="f-en">🇬🇧 English</button>
+    <button class="filter-pill" data-lang="uk"  onclick="setFilter('uk')"  id="f-uk">🇺🇦 Ukrainian</button>
+    <button class="filter-pill" data-lang="fi"  onclick="setFilter('fi')"  id="f-fi">🇫🇮 Finnish</button>
+    <div class="spacer"></div>
+    <button class="done-pill" id="doneToggle" onclick="toggleHideDone()"></button>
+    <a href="/wordsearch/create/" class="create-btn" id="createBtn" style="display:none"></a>
   </div>
 
-  <div class="grid" id="puzzleGrid">
-    <div class="loading" id="loadingMsg">Loading...</div>
+  <div class="cards" id="cards">
+    <div class="empty"><div class="empty-icon">⏳</div><div id="loadingTxt"></div></div>
   </div>
-</main>
+</div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-const API = '/api/wordsearch/';
-const i18n = {
-  en: {
-    title: 'Word Search Puzzles', subtitle: 'Choose a puzzle and find all hidden words',
-    filter: 'Filter by language:', all: 'All', hideDone: 'Hide done', showDone: 'Show done',
-    words: 'words', by: 'by', done: '✓ Done', create: '+ Create', loading: 'Loading...',
-    empty: 'No puzzles found', emptyHint: 'Try changing the filter',
-  },
-  uk: {
-    title: 'Філворди', subtitle: 'Обери завдання та знайди всі приховані слова',
-    filter: 'Фільтр за мовою:', all: 'Всі', hideDone: 'Приховати виконані', showDone: 'Показати виконані',
-    words: 'слів', by: 'від', done: '✓ Виконано', create: '+ Створити', loading: 'Завантаження...',
-    empty: 'Завдань не знайдено', emptyHint: 'Спробуй змінити фільтр',
-  },
-  fi: {
-    title: 'Täytäpelat', subtitle: 'Valitse tehtävä ja löydä kaikki piilotetut sanat',
-    filter: 'Suodata kielen mukaan:', all: 'Kaikki', hideDone: 'Piilota tehdyt', showDone: 'Näytä tehdyt',
-    words: 'sanaa', by: 'tekijä', done: '✓ Tehty', create: '+ Luo', loading: 'Ladataan...',
-    empty: 'Ei tehtäviä', emptyHint: 'Kokeile muuttaa suodatinta',
-  },
+const WI = {
+  en:{hd:'Word Search',sub:'Pick a puzzle and find all hidden words',all:'All',hide:'Hide completed',show:'Show completed',create:'+ Create',loading:'Loading…',empty:'No puzzles found',hint:'Try a different filter',words:'words',by:'by',done:'✓ Done'},
+  uk:{hd:'Філворди',sub:'Обери завдання та знайди всі приховані слова',all:'Всі',hide:'Сховати виконані',show:'Показати виконані',create:'+ Створити',loading:'Завантаження…',empty:'Завдань не знайдено',hint:'Спробуй інший фільтр',words:'слів',by:'від',done:'✓ Виконано'},
+  fi:{hd:'Täytäpelat',sub:'Valitse tehtävä ja löydä kaikki piilotetut sanat',all:'Kaikki',hide:'Piilota tehdyt',show:'Näytä tehdyt',create:'+ Luo',loading:'Ladataan…',empty:'Ei tehtäviä',hint:'Kokeile eri suodatinta',words:'sanaa',by:'tekijä',done:'✓ Tehty'},
 };
+function tr() { return WI[uiLang]||WI.en; }
 
-let uiLang = localStorage.getItem('uiLang') || 'en';
-let filterLang = 'all';
-let hideDone = false;
-let allPuzzles = [];
-let doneSet = new Set(JSON.parse(localStorage.getItem('guestDone') || '[]'));
-const isLoggedIn = document.cookie.includes('sessionid') || !!localStorage.getItem('access_token');
+let allPuzzles=[], filterLang='all', hideDone=false;
 
-function t(key) { return (i18n[uiLang] || i18n.en)[key] || key; }
-
-function setUILang(lang) {
-  uiLang = lang;
-  localStorage.setItem('uiLang', lang);
-  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.ui === lang));
-  applyTranslations();
-  renderPuzzles();
+/* ── Done tracking ──────────────────────────────────────────────── */
+// For guests: check localStorage progress key
+function isPuzzleDone(p) {
+  if (p.is_done) return true;  // server-side for logged in
+  // guest: check local storage
+  try {
+    const ls = JSON.parse(localStorage.getItem(`wsp_${p.id}`) || '{}');
+    return ls.d === true;
+  } catch { return false; }
 }
 
-function applyTranslations() {
-  document.getElementById('pageTitle').textContent = t('title');
-  document.getElementById('pageSubtitle').textContent = t('subtitle');
-  document.getElementById('filterLabel').textContent = t('filter');
-  document.getElementById('f-all').textContent = t('all');
-  document.getElementById('doneToggle').textContent = hideDone ? t('showDone') : t('hideDone');
-  document.getElementById('createBtn').textContent = t('create');
-  document.getElementById('loadingMsg') && (document.getElementById('loadingMsg').textContent = t('loading'));
+function applyUI() {
+  const t=tr();
+  document.getElementById('pageHd').textContent   = t.hd;
+  document.getElementById('pageSub').textContent  = t.sub;
+  document.getElementById('f-all').textContent    = t.all;
+  const ltEl = document.getElementById('loadingTxt');
+  if (ltEl) ltEl.textContent = t.loading;
+
+  const dt=document.getElementById('doneToggle');
+  dt.textContent = hideDone ? t.show : t.hide;
+  dt.classList.toggle('active', hideDone);
+
+  const me=getMe();
+  const cb=document.getElementById('createBtn');
+  if (me && (me.role==='teacher'||me.role==='admin')) {
+    cb.style.display='inline-flex'; cb.textContent=t.create;
+  } else {
+    cb.style.display='none';
+  }
 }
 
 function setFilter(lang) {
-  filterLang = lang;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
-  renderPuzzles();
+  filterLang=lang;
+  document.querySelectorAll('.filter-pill').forEach(b=>b.classList.toggle('active',b.dataset.lang===lang));
+  render();
 }
 
-function toggleDoneFilter() {
-  hideDone = !hideDone;
-  document.getElementById('doneToggle').classList.toggle('active', hideDone);
-  document.getElementById('doneToggle').textContent = hideDone ? t('showDone') : t('hideDone');
-  renderPuzzles();
+function toggleHideDone() {
+  hideDone=!hideDone;
+  applyUI();
+  render();
 }
 
-function isDone(puzzle) {
-  if (puzzle.is_done) return true;
-  return doneSet.has(puzzle.id);
-}
+function render() {
+  const t=tr();
+  let ps=allPuzzles;
+  if (filterLang!=='all') ps=ps.filter(p=>p.language===filterLang);
+  if (hideDone) ps=ps.filter(p=>!isPuzzleDone(p));
 
-function renderPuzzles() {
-  const grid = document.getElementById('puzzleGrid');
-  let puzzles = allPuzzles;
-
-  if (filterLang !== 'all') puzzles = puzzles.filter(p => p.language === filterLang);
-  if (hideDone) puzzles = puzzles.filter(p => !isDone(p));
-
-  if (puzzles.length === 0) {
-    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
-      <div class="empty-icon">🔍</div>
-      <div>${t('empty')}</div>
-      <div style="font-size:.85rem;margin-top:6px">${t('emptyHint')}</div>
-    </div>`;
+  const el=document.getElementById('cards');
+  if (!ps.length) {
+    el.innerHTML=`<div class="empty"><div class="empty-icon">🔍</div><div>${t.empty}</div><div class="empty-hint">${t.hint}</div></div>`;
     return;
   }
-
-  grid.innerHTML = puzzles.map(p => {
-    const done = isDone(p);
-    return `
-    <a class="card${done ? ' is-done' : ''}" href="/wordsearch/${p.id}/">
-      ${done ? `<span class="done-badge">${t('done')}</span>` : ''}
-      <span class="card-lang ${p.language}">${p.language_display}</span>
+  el.innerHTML=ps.map(p=>{
+    const done=isPuzzleDone(p);
+    return `<a class="ws-card${done?' done-card':''}" href="/wordsearch/${p.id}/">
+      ${done?`<span class="done-badge">${t.done}</span>`:''}
+      <span class="tag tag-${p.language}">${escHtml(p.language_display)}</span>
       <div class="card-title">${escHtml(p.title)}</div>
-      <div class="card-meta">${p.word_count} ${t('words')} · ${t('by')} ${escHtml(p.author)}</div>
+      <div class="card-meta">${p.word_count} ${t.words} · ${t.by} ${escHtml(p.author)}</div>
     </a>`;
   }).join('');
 }
 
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-async function loadPuzzles() {
+async function load() {
   try {
-    const token = localStorage.getItem('access_token');
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const res = await fetch(API, { headers });
-    const data = await res.json();
-    allPuzzles = Array.isArray(data) ? data : (data.results || []);
+    const token=getToken();
+    const res=await fetch('/api/wordsearch/',{headers:token?{'Authorization':`Bearer ${token}`}:{}});
+    const data=await res.json();
+    allPuzzles=Array.isArray(data)?data:(data.results||[]);
 
-    // Показуємо кнопку "Створити" для вчителів/адмінів
-    const me = JSON.parse(localStorage.getItem('me') || 'null');
-    if (me && (me.role === 'teacher' || me.role === 'admin')) {
-      document.getElementById('createBtn').style.display = 'inline-flex';
+    // For logged-in users: fetch my-progress to mark done puzzles
+    if (token) {
+      try {
+        const pr=await fetch('/api/wordsearch/my-progress/',{headers:{'Authorization':`Bearer ${token}`}});
+        const pdata=await pr.json();
+        const doneIds=new Set((Array.isArray(pdata)?pdata:[]).filter(p=>p.is_done).map(p=>p.id));
+        allPuzzles=allPuzzles.map(p=>({...p, is_done: doneIds.has(p.id)}));
+      } catch {}
     }
-
-    renderPuzzles();
-  } catch (e) {
-    document.getElementById('puzzleGrid').innerHTML =
-      `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">⚠️</div><div>Failed to load puzzles</div></div>`;
+    render();
+  } catch {
+    document.getElementById('cards').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div>Failed to load</div></div>`;
   }
 }
 
-// Init
-setUILang(uiLang);
-applyTranslations();
-loadPuzzles();
+window.setUILang=function(lang){uiLang=lang;localStorage.setItem('uiLang',lang);applyTranslations();applyUI();render();};
+applyUI(); load();
 </script>
-</body>
-</html>
+{% endblock %}

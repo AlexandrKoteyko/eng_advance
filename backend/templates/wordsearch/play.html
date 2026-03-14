@@ -4,206 +4,319 @@
 
 {% block extra_head %}
 <style>
-.play-wrap { max-width:1200px; margin:0 auto; padding:32px 24px; }
-.play-header { display:flex; align-items:center; gap:14px; margin-bottom:28px; flex-wrap:wrap; }
-.puzzle-title { font-family:var(--font-head); font-size:1.4rem; font-weight:800; flex:1; color:var(--text); }
-.done-btn {
-  padding:8px 18px; border-radius:9px; border:1px solid var(--border);
-  background:var(--surface); color:var(--muted); cursor:pointer;
-  font-size:.85rem; font-weight:600; transition:all var(--transition); font-family:var(--font-body);
-}
-.done-btn.marked { background:rgba(56,217,169,.1); color:var(--accent2); border-color:var(--accent2); }
+.play-wrap { max-width:1200px; margin:0 auto; padding:28px 20px; }
 
-.play-body { display:flex; gap:28px; align-items:flex-start; }
+.play-header {
+  display:flex; align-items:center; gap:12px; margin-bottom:24px; flex-wrap:wrap;
+}
+.puzzle-title { font-family:var(--font-head); font-size:1.3rem; font-weight:800; flex:1; min-width:0; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.hdr-actions { display:flex; gap:8px; flex-shrink:0; }
+.done-btn, .reset-btn {
+  padding:7px 14px; border-radius:9px; border:1px solid var(--border);
+  background:var(--surface); color:var(--muted); cursor:pointer;
+  font-size:.82rem; font-weight:600; transition:all var(--transition); font-family:var(--font-body);
+  white-space:nowrap;
+}
+.done-btn:hover  { border-color:var(--accent2); color:var(--accent2); }
+.done-btn.marked { background:rgba(56,217,169,.12); color:var(--accent2); border-color:var(--accent2); }
+.reset-btn:hover { border-color:var(--accent3); color:var(--accent3); }
+
+/* Layout: grid left, words right */
+.play-body {
+  display:grid;
+  grid-template-columns: 1fr 200px;
+  gap:24px;
+  align-items:start;
+}
+@media(max-width:720px) {
+  .play-body { grid-template-columns:1fr; }
+  .word-panel { position:static !important; order:-1; }
+}
 
 /* Grid */
-.grid-wrap { flex:1; display:flex; justify-content:center; }
+.grid-outer { overflow-x:auto; }
 #wsGrid {
   display:inline-grid; gap:3px;
   background:var(--surface); border:1px solid var(--border);
-  border-radius:var(--radius); padding:12px; cursor:crosshair;
-  user-select:none;
+  border-radius:var(--radius); padding:10px; cursor:crosshair;
+  user-select:none; touch-action:none;
 }
 .cell {
-  width:36px; height:36px; border-radius:6px;
+  width:34px; height:34px; border-radius:5px;
   display:flex; align-items:center; justify-content:center;
-  font-size:.88rem; font-weight:700; letter-spacing:.3px;
+  font-size:.82rem; font-weight:700; letter-spacing:.2px;
   background:var(--surface2); border:2px solid transparent;
   transition:background .1s, border-color .1s, color .1s;
-  color:var(--text);
+  color:var(--text2);
 }
-.cell.selecting { background:rgba(79,142,247,.25); border-color:var(--accent); color:var(--accent); }
-.cell.found     { background:rgba(56,217,169,.2);  border-color:var(--accent2); color:var(--accent2); }
-.cell.found.selecting { background:rgba(56,217,169,.35); }
-[data-theme="light"] .cell { background:#eef1f8; }
-[data-theme="light"] .cell.selecting { background:rgba(47,111,224,.15); color:#2f6fe0; }
-[data-theme="light"] .cell.found     { background:rgba(26,170,130,.15); color:#0f766e; }
+@media(max-width:500px) { .cell { width:28px; height:28px; font-size:.72rem; } }
+
+.cell.selecting { background:rgba(79,142,247,.22); border-color:var(--accent); color:var(--accent); }
+/* found color is set per-word via JS inline style */
+.cell.found { opacity:1; }
+
+[data-theme="light"] .cell           { background:#eef1f8; color:#3a4a6b; }
+[data-theme="light"] .cell.selecting { background:rgba(47,111,224,.14); color:#2f6fe0; border-color:#2f6fe0; }
 
 /* Word panel */
 .word-panel {
-  width:220px; flex-shrink:0;
   background:var(--surface); border:1px solid var(--border);
-  border-radius:var(--radius); padding:20px;
-  position:sticky; top:calc(var(--nav-h) + 20px);
+  border-radius:var(--radius); padding:16px;
+  position:sticky; top:calc(var(--nav-h) + 16px);
 }
-.panel-title { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:14px; }
-.word-list { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+.panel-hd { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:10px; }
+.word-list { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
 .word-item {
-  padding:7px 12px; border-radius:8px;
-  background:var(--surface2); border:1px solid var(--border);
-  font-weight:600; font-size:.88rem; color:var(--text);
-  display:flex; align-items:center; gap:7px;
-  transition:all var(--transition);
+  padding:6px 10px; border-radius:7px; font-weight:600; font-size:.85rem;
+  background:var(--surface2); color:var(--text); border:1px solid var(--border);
+  display:flex; align-items:center; gap:6px; transition:all var(--transition);
 }
-.word-item.found-word { text-decoration:line-through; color:var(--muted); background:transparent; border-color:transparent; }
-.word-item .ck { color:var(--accent2); font-size:.78rem; }
-.prog-bar-bg { background:var(--surface2); border-radius:5px; height:5px; overflow:hidden; }
-.prog-bar    { height:100%; background:var(--accent2); border-radius:5px; transition:width .4s; }
-.prog-txt    { font-size:.75rem; color:var(--muted); text-align:center; margin-top:6px; }
+.word-item.done { text-decoration:line-through; color:var(--muted); background:transparent; border-color:transparent; }
+.ck { color:var(--accent2); font-size:.75rem; flex-shrink:0; }
+.prog-bg  { background:var(--surface2); border-radius:4px; height:4px; overflow:hidden; }
+.prog-bar { height:100%; background:var(--accent2); border-radius:4px; transition:width .4s; }
+.prog-txt { font-size:.72rem; color:var(--muted); text-align:center; margin-top:5px; }
 
 /* Complete overlay */
-.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(6px); align-items:center; justify-content:center; z-index:200; }
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.72); backdrop-filter:blur(6px); align-items:center; justify-content:center; z-index:200; padding:20px; }
 .overlay.show { display:flex; }
-.overlay-card {
-  background:var(--surface); border:1px solid var(--accent2);
-  border-radius:20px; padding:48px 52px; text-align:center;
-  animation:popIn .35s ease;
+.ov-card {
+  background:var(--surface); border:1px solid var(--accent2); border-radius:20px;
+  padding:44px 48px; text-align:center; animation:popIn .35s ease; max-width:380px; width:100%;
 }
 @keyframes popIn { from{transform:scale(.8);opacity:0} to{transform:scale(1);opacity:1} }
-.overlay-card .big-emoji { font-size:3.5rem; margin-bottom:14px; }
-.overlay-card h2 { font-family:var(--font-head); font-size:1.7rem; font-weight:800; color:var(--accent2); margin-bottom:8px; }
-.overlay-card p  { color:var(--muted); margin-bottom:26px; }
+.ov-emoji { font-size:3.2rem; margin-bottom:14px; }
+.ov-card h2 { font-family:var(--font-head); font-size:1.6rem; font-weight:800; color:var(--accent2); margin-bottom:8px; }
+.ov-card p  { color:var(--muted); margin-bottom:24px; }
+.ov-card .ov-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="play-wrap">
   <div class="play-header">
-    <a href="/wordsearch/" class="btn btn-ghost btn-sm" id="backBtn"></a>
+    <a href="/wordsearch/" class="btn btn-ghost btn-sm" id="backBtn">←</a>
     <div class="puzzle-title" id="pzTitle">…</div>
     <span class="tag" id="pzLang"></span>
-    <button class="done-btn" id="doneBtn" onclick="toggleDone()"></button>
+    <div class="hdr-actions">
+      <button class="reset-btn" id="resetBtn" onclick="resetProgress()"></button>
+      <button class="done-btn"  id="doneBtn"  onclick="toggleDone()"></button>
+    </div>
   </div>
 
   <div class="play-body" id="playBody">
-    <div style="flex:1;text-align:center;padding:80px;color:var(--muted)" id="loadTxt">Loading…</div>
+    <div style="padding:60px;text-align:center;color:var(--muted)" id="loadTxt">…</div>
   </div>
 </div>
 
-<div class="overlay" id="completeOverlay">
-  <div class="overlay-card">
-    <div class="big-emoji">🎉</div>
-    <h2 id="completeHd"></h2>
-    <p id="completeSub"></p>
-    <a href="/wordsearch/" class="btn btn-primary btn-lg" id="completeBack"></a>
+<div class="overlay" id="overlay">
+  <div class="ov-card">
+    <div class="ov-emoji">🎉</div>
+    <h2 id="ovHd"></h2>
+    <p id="ovSub"></p>
+    <div class="ov-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('overlay').classList.remove('show'); resetProgress(true)" id="ovPlayAgain"></button>
+      <a href="/wordsearch/" class="btn btn-primary" id="ovBack"></a>
+    </div>
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-const PZ_I18N = {
-  en:{ back:'← Back', markDone:'Mark as done', unmark:'✓ Done', loading:'Loading puzzle…', wordsTitle:'Find these words', found:'found', allFound:'All words found!', congrats:'Well done!', backList:'Back to list' },
-  uk:{ back:'← Назад', markDone:'Позначити виконаним', unmark:'✓ Виконано', loading:'Завантаження…', wordsTitle:'Знайди слова', found:'знайдено', allFound:'Всі слова знайдено!', congrats:'Вітаємо!', backList:'До списку' },
-  fi:{ back:'← Takaisin', markDone:'Merkitse tehdyksi', unmark:'✓ Tehty', loading:'Ladataan…', wordsTitle:'Löydettävät sanat', found:'löydetty', allFound:'Kaikki sanat löydetty!', congrats:'Hienoa!', backList:'Takaisin listaan' },
+const I18N = {
+  en:{ back:'← Back', markDone:'Mark done', unmark:'✓ Done', reset:'↺ Reset', loading:'Loading…', words:'Find words', found:'found', allFound:'Puzzle complete!', congrats:'Great job!', backList:'Back to list', playAgain:'Play again' },
+  uk:{ back:'← Назад', markDone:'Позначити', unmark:'✓ Виконано', reset:'↺ Заново', loading:'Завантаження…', words:'Знайди слова', found:'знайдено', allFound:'Всі слова знайдено!', congrats:'Вітаємо!', backList:'До списку', playAgain:'Грати ще раз' },
+  fi:{ back:'← Takaisin', markDone:'Merkitse', unmark:'✓ Tehty', reset:'↺ Nollaa', loading:'Ladataan…', words:'Löydä sanat', found:'löydetty', allFound:'Kaikki löydetty!', congrats:'Hienoa!', backList:'Listaan', playAgain:'Pelaa uudelleen' },
 };
-function tr() { return PZ_I18N[uiLang]||PZ_I18N.en; }
+function tr() { return I18N[uiLang]||I18N.en; }
 
-const PUZZLE_ID = window.location.pathname.split('/').filter(Boolean).pop();
-const LS_KEY    = `ws_prog_${PUZZLE_ID}`;
-let puzzle=null, foundWords=new Set(), isDone=false, foundCells=new Set();
-let dragging=false, startCell=null, curCells=[];
+const PID  = window.location.pathname.split('/').filter(Boolean).pop();
+const LSK  = `wsp_${PID}`;
+let puzzle = null, foundWords = new Set(), isDone = false, foundCells = new Map(); // key->"r,c" → word
+let dragging = false, startCell = null, curCells = [];
 
-function getLP()  { try{return JSON.parse(localStorage.getItem(LS_KEY)||'{"found":[],"done":false}');}catch{return{found:[],done:false};} }
-function saveLP() { localStorage.setItem(LS_KEY,JSON.stringify({found:[...foundWords],done:isDone})); }
+/* ── Word colour palette ── */
+// Each found word gets its own colour. Dark/light variants auto-applied.
+const PALETTE_DARK = [
+  {bg:'rgba(56,217,169,.22)',  border:'#38d9a9', color:'#38d9a9'},  // teal
+  {bg:'rgba(249,115,22,.2)',   border:'#f97316', color:'#f97316'},  // orange
+  {bg:'rgba(168,85,247,.22)',  border:'#a855f7', color:'#c084fc'},  // purple
+  {bg:'rgba(234,179,8,.2)',    border:'#eab308', color:'#fbbf24'},  // yellow
+  {bg:'rgba(236,72,153,.2)',   border:'#ec4899', color:'#f472b6'},  // pink
+  {bg:'rgba(14,165,233,.22)',  border:'#0ea5e9', color:'#38bdf8'},  // sky
+  {bg:'rgba(34,197,94,.2)',    border:'#22c55e', color:'#4ade80'},  // green
+  {bg:'rgba(239,68,68,.2)',    border:'#ef4444', color:'#f87171'},  // red
+  {bg:'rgba(20,184,166,.2)',   border:'#14b8a6', color:'#2dd4bf'},  // cyan
+  {bg:'rgba(245,158,11,.2)',   border:'#f59e0b', color:'#fcd34d'},  // amber
+];
+const PALETTE_LIGHT = [
+  {bg:'rgba(20,184,166,.18)',  border:'#0d9488', color:'#0f766e'},
+  {bg:'rgba(234,88,12,.15)',   border:'#ea580c', color:'#c2410c'},
+  {bg:'rgba(147,51,234,.15)',  border:'#7c3aed', color:'#6d28d9'},
+  {bg:'rgba(161,98,7,.15)',    border:'#a16207', color:'#92400e'},
+  {bg:'rgba(219,39,119,.15)',  border:'#db2777', color:'#9d174d'},
+  {bg:'rgba(2,132,199,.15)',   border:'#0284c7', color:'#075985'},
+  {bg:'rgba(22,163,74,.15)',   border:'#16a34a', color:'#15803d'},
+  {bg:'rgba(220,38,38,.15)',   border:'#dc2626', color:'#991b1b'},
+  {bg:'rgba(13,148,136,.15)',  border:'#0d9488', color:'#134e4a'},
+  {bg:'rgba(217,119,6,.15)',   border:'#d97706', color:'#92400e'},
+];
+const wordColorIdx = {};   // word → palette index
+let colorCounter = 0;
 
-async function loadPuzzle() {
-  document.getElementById('backBtn').textContent  = tr().back;
-  document.getElementById('loadTxt').textContent  = tr().loading;
+function getWordColor(word) {
+  if (wordColorIdx[word] === undefined) {
+    wordColorIdx[word] = colorCounter % PALETTE_DARK.length;
+    colorCounter++;
+  }
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  return isDark ? PALETTE_DARK[wordColorIdx[word]] : PALETTE_LIGHT[wordColorIdx[word]];
+}
+
+function applyColorToCell(el, word) {
+  const c = getWordColor(word);
+  el.style.background   = c.bg;
+  el.style.borderColor  = c.border;
+  el.style.color        = c.color;
+}
+
+/* ── Local storage helpers ── */
+function loadLS()  { try{ return JSON.parse(localStorage.getItem(LSK)||'{"f":[],"d":false}'); }catch{ return{f:[],d:false}; } }
+function saveLS()  { localStorage.setItem(LSK, JSON.stringify({f:[...foundWords], d:isDone})); }
+function clearLS() { localStorage.removeItem(LSK); }
+
+/* ── Load puzzle ── */
+async function init() {
+  applyI18N();
   try {
-    const token=getToken();
-    const res=await fetch(`/api/wordsearch/${PUZZLE_ID}/`,{headers:token?{'Authorization':`Bearer ${token}`}:{}});
-    if(!res.ok) throw new Error();
-    puzzle=await res.json();
+    const token = getToken();
+    const res   = await fetch(`/api/wordsearch/${PID}/`, {headers: token?{'Authorization':`Bearer ${token}`}:{}});
+    if (!res.ok) throw new Error();
+    puzzle = await res.json();
+
     document.getElementById('pzTitle').textContent = puzzle.title;
-    const lt=document.getElementById('pzLang');
-    lt.textContent=puzzle.language_display; lt.className=`tag tag-${puzzle.language}`;
-    document.title=puzzle.title;
-    if(puzzle.progress){foundWords=new Set(puzzle.progress.found_words||[]); isDone=puzzle.progress.is_done;}
-    else { const lp=getLP(); foundWords=new Set(lp.found||[]); isDone=lp.done; }
-    updateDoneBtn(); renderAll();
-  } catch { document.getElementById('loadTxt').textContent='Puzzle not found.'; }
+    document.title = puzzle.title;
+    const lt = document.getElementById('pzLang');
+    lt.textContent = puzzle.language_display; lt.className = `tag tag-${puzzle.language}`;
+
+    if (puzzle.progress) {
+      foundWords = new Set(puzzle.progress.found_words || []);
+      isDone     = puzzle.progress.is_done;
+    } else {
+      const ls = loadLS();
+      foundWords = new Set(ls.f || []);
+      isDone     = ls.d;
+    }
+    updateDoneBtn();
+    buildUI();
+  } catch {
+    document.getElementById('loadTxt').textContent = 'Puzzle not found.';
+  }
 }
 
+function applyI18N() {
+  const t = tr();
+  document.getElementById('backBtn').textContent  = t.back;
+  document.getElementById('resetBtn').textContent = t.reset;
+  document.getElementById('loadTxt').textContent  = t.loading;
+  updateDoneBtn();
+}
 function updateDoneBtn() {
-  const btn=document.getElementById('doneBtn');
+  const btn = document.getElementById('doneBtn');
   btn.textContent = isDone ? tr().unmark : tr().markDone;
-  btn.classList.toggle('marked',isDone);
+  btn.classList.toggle('marked', isDone);
 }
 
-function renderAll() {
-  document.getElementById('playBody').innerHTML=`
-    <div class="grid-wrap"><div id="wsGrid"></div></div>
+/* ── Build UI ── */
+function buildUI() {
+  document.getElementById('playBody').innerHTML = `
+    <div class="grid-outer"><div id="wsGrid"></div></div>
     <div class="word-panel">
-      <div class="panel-title">${tr().wordsTitle}</div>
-      <div class="word-list" id="wordList"></div>
-      <div class="prog-bar-bg"><div class="prog-bar" id="pBar" style="width:0%"></div></div>
-      <div class="prog-txt"  id="pTxt"></div>
+      <div class="panel-hd">${tr().words}</div>
+      <div class="word-list" id="wList"></div>
+      <div class="prog-bg"><div class="prog-bar" id="pBar" style="width:0%"></div></div>
+      <div class="prog-txt" id="pTxt"></div>
     </div>`;
-  rebuildFoundCells(); renderGrid(); renderWords(); updateProgress(); attachEvents();
+  rebuildFoundCells();
+  renderGrid();
+  renderWords();
+  updateProgress();
+  attachDrag();
 }
 
 function rebuildFoundCells() {
-  foundCells=new Set();
-  for(const w of foundWords) markFound(w);
+  foundCells = new Map();
+  foundWords.forEach(w => trackWordCells(w));
 }
-function markFound(word) {
-  if(!puzzle?.grid_data?.placements) return;
-  const pl=puzzle.grid_data.placements.find(p=>p.word===word); if(!pl) return;
-  const {row,col,direction}=pl, dr=direction==='V'?1:0, dc=direction==='H'?1:0;
-  for(let i=0;i<word.length;i++) foundCells.add(`${row+i*dr},${col+i*dc}`);
+function trackWordCells(word) {
+  const pl = puzzle?.grid_data?.placements?.find(p => p.word === word);
+  if (!pl) return;
+  const {row, col, direction} = pl;
+  const dr = direction === 'V' ? 1 : 0, dc = direction === 'H' ? 1 : 0;
+  for (let i = 0; i < word.length; i++) foundCells.set(`${row+i*dr},${col+i*dc}`, word);
 }
 
 function renderGrid() {
-  const grd=document.getElementById('wsGrid');
-  const g=puzzle.grid_data.grid; const sz=g.length;
-  grd.style.gridTemplateColumns=`repeat(${sz},36px)`;
-  grd.innerHTML=g.map((row,r)=>row.map((l,c)=>{
-    const k=`${r},${c}`;
-    return `<div class="cell${foundCells.has(k)?' found':''}" data-r="${r}" data-c="${c}">${l}</div>`;
-  }).join('')).join('');
+  const g = puzzle.grid_data.grid, sz = g.length;
+  const el = document.getElementById('wsGrid');
+  el.style.gridTemplateColumns = `repeat(${sz},34px)`;
+  el.innerHTML = g.map((row, r) =>
+    row.map((l, c) => {
+      const key = `${r},${c}`;
+      const word = foundCells.get(key);
+      if (word) {
+        const col = getWordColor(word);
+        return `<div class="cell found" data-r="${r}" data-c="${c}"
+          style="background:${col.bg};border-color:${col.border};color:${col.color}">${l}</div>`;
+      }
+      return `<div class="cell" data-r="${r}" data-c="${c}">${l}</div>`;
+    }).join('')
+  ).join('');
 }
 
 function renderWords() {
-  document.getElementById('wordList').innerHTML=puzzle.words.map(w=>{
-    const f=foundWords.has(w.word);
-    return `<div class="word-item${f?' found-word':''}" id="wi-${w.word}">${f?'<span class="ck">✓</span>':''}${w.word}</div>`;
+  document.getElementById('wList').innerHTML = puzzle.words.map(w => {
+    const f = foundWords.has(w.word);
+    if (f) {
+      const col = getWordColor(w.word);
+      return `<div class="word-item done" id="wi-${w.word}"
+        style="text-decoration:line-through;color:${col.color}">
+        <span style="color:${col.color};font-size:.75rem;flex-shrink:0">✓</span>${w.word}
+      </div>`;
+    }
+    return `<div class="word-item" id="wi-${w.word}">${w.word}</div>`;
   }).join('');
 }
 
 function updateProgress() {
-  const total=puzzle.words.length, done=foundWords.size;
-  const pct=total?done/total*100:0;
-  const bar=document.getElementById('pBar'); if(bar)bar.style.width=pct+'%';
-  const txt=document.getElementById('pTxt'); if(txt)txt.textContent=`${done} / ${total} ${tr().found}`;
+  const total = puzzle.words.length, done = foundWords.size;
+  const pct   = total ? done/total*100 : 0;
+  const bar   = document.getElementById('pBar'); if(bar) bar.style.width = pct+'%';
+  const txt   = document.getElementById('pTxt'); if(txt) txt.textContent = `${done}/${total} ${tr().found}`;
 }
 
-/* Drag */
-function attachEvents() {
-  const grd=document.getElementById('wsGrid');
-  grd.addEventListener('mousedown',e=>{const c=e.target.closest('.cell');if(!c)return; dragging=true; startCell={r:+c.dataset.r,c:+c.dataset.c}; curCells=[startCell]; highlight([startCell]); e.preventDefault();});
-  grd.addEventListener('mousemove',e=>{if(!dragging)return; const c=e.target.closest('.cell');if(!c)return; curCells=getLine(startCell,{r:+c.dataset.r,c:+c.dataset.c}); highlight(curCells);});
-  document.addEventListener('mouseup',()=>{if(!dragging)return; dragging=false; checkSel(curCells); clearSel();});
-  grd.addEventListener('touchstart',e=>{const t=e.touches[0],c=document.elementFromPoint(t.clientX,t.clientY)?.closest('.cell');if(!c)return; dragging=true; startCell={r:+c.dataset.r,c:+c.dataset.c}; curCells=[startCell]; highlight([startCell]); e.preventDefault();},{passive:false});
-  grd.addEventListener('touchmove',e=>{if(!dragging)return; const t=e.touches[0],c=document.elementFromPoint(t.clientX,t.clientY)?.closest('.cell');if(!c)return; curCells=getLine(startCell,{r:+c.dataset.r,c:+c.dataset.c}); highlight(curCells); e.preventDefault();},{passive:false});
-  document.addEventListener('touchend',()=>{if(!dragging)return; dragging=false; checkSel(curCells); clearSel();});
+/* ── Drag selection ── */
+function attachDrag() {
+  const g = document.getElementById('wsGrid');
+  const onStart = (r,c) => { dragging=true; startCell={r,c}; curCells=[{r,c}]; hilite([{r,c}]); };
+  const onMove  = (r,c) => { if(!dragging)return; curCells=getLine(startCell,{r,c}); hilite(curCells); };
+  const onEnd   = ()    => { if(!dragging)return; dragging=false; checkWord(curCells); clearHilite(); };
+
+  g.addEventListener('mousedown', e => { const c=e.target.closest('.cell'); if(!c)return; onStart(+c.dataset.r,+c.dataset.c); e.preventDefault(); });
+  g.addEventListener('mousemove', e => { const c=e.target.closest('.cell'); if(!c)return; onMove(+c.dataset.r,+c.dataset.c); });
+  document.addEventListener('mouseup', onEnd);
+
+  g.addEventListener('touchstart', e => { const t=e.touches[0], c=document.elementFromPoint(t.clientX,t.clientY)?.closest('.cell'); if(!c)return; onStart(+c.dataset.r,+c.dataset.c); e.preventDefault(); }, {passive:false});
+  g.addEventListener('touchmove',  e => { const t=e.touches[0], c=document.elementFromPoint(t.clientX,t.clientY)?.closest('.cell'); if(!c)return; onMove(+c.dataset.r,+c.dataset.c); e.preventDefault(); }, {passive:false});
+  document.addEventListener('touchend', onEnd);
 }
 
 function getLine(s,e) {
   const dr=e.r-s.r, dc=e.c-s.c;
-  const isH=dr===0, isV=dc===0;
-  if(!isH&&!isV) return Math.abs(dr)>Math.abs(dc)?buildLine(s,{r:e.r,c:s.c}):buildLine(s,{r:s.r,c:e.c});
-  return buildLine(s,e);
+  if(dr===0||dc===0) return buildLine(s,e);
+  return Math.abs(dr)>Math.abs(dc) ? buildLine(s,{r:e.r,c:s.c}) : buildLine(s,{r:s.r,c:e.c});
 }
 function buildLine(s,e) {
   const cells=[], dr=Math.sign(e.r-s.r), dc=Math.sign(e.c-s.c);
@@ -212,50 +325,97 @@ function buildLine(s,e) {
   for(let i=0;i<=steps;i++){cells.push({r,c}); r+=dr; c+=dc;}
   return cells;
 }
-function highlight(cells) {
+function hilite(cells) {
   document.querySelectorAll('.cell.selecting').forEach(el=>el.classList.remove('selecting'));
   cells.forEach(({r,c})=>document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`)?.classList.add('selecting'));
 }
-function clearSel() { document.querySelectorAll('.cell.selecting').forEach(el=>el.classList.remove('selecting')); }
+function clearHilite() { document.querySelectorAll('.cell.selecting').forEach(el=>el.classList.remove('selecting')); }
 
-function checkSel(cells) {
+function checkWord(cells) {
   const g=puzzle.grid_data.grid;
   const word=cells.map(({r,c})=>g[r][c]).join('');
   const rev=word.split('').reverse().join('');
   const match=puzzle.words.map(w=>w.word).find(w=>w===word||w===rev);
-  if(match&&!foundWords.has(match)) onFound(match,cells);
+  if (match && !foundWords.has(match)) onFound(match, cells);
 }
 
-async function onFound(word,cells) {
-  foundWords.add(word); markFound(word);
-  cells.forEach(({r,c})=>{ const el=document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`); if(el){el.classList.add('found');el.classList.remove('selecting');}});
+async function onFound(word, cells) {
+  foundWords.add(word); trackWordCells(word);
+  const wColor = getWordColor(word);
+  // Paint cells with word's colour
+  cells.forEach(({r,c})=>{
+    const el=document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+    if(el){
+      el.classList.add('found');
+      el.classList.remove('selecting');
+      el.style.background  = wColor.bg;
+      el.style.borderColor = wColor.border;
+      el.style.color       = wColor.color;
+    }
+  });
+  // Update word list item with matching colour
   const wi=document.getElementById(`wi-${word}`);
-  if(wi){wi.classList.add('found-word'); wi.innerHTML=`<span class="ck">✓</span>${word}`;}
+  if(wi){
+    wi.className='word-item done';
+    wi.style.textDecoration='line-through';
+    wi.style.color=wColor.color;
+    wi.innerHTML=`<span style="color:${wColor.color};font-size:.75rem;flex-shrink:0">✓</span>${word}`;
+  }
   updateProgress();
+
   const token=getToken();
-  if(token) { try{await fetch(`/api/wordsearch/${PUZZLE_ID}/found/`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({word})});}catch{} }
-  else { saveLP(); }
+  if(token){
+    try{ await fetch(`/api/wordsearch/${PID}/found/`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({word})}); }
+    catch{}
+  } else { saveLS(); }
+
+  // Check completion
   const placed=puzzle.grid_data.placed_words||[];
-  if(placed.every(w=>foundWords.has(w))) setTimeout(showComplete,600);
+  if(placed.length && placed.every(w=>foundWords.has(w))) setTimeout(showComplete, 500);
 }
 
 function showComplete() {
   const t=tr();
-  document.getElementById('completeHd').textContent   = t.allFound;
-  document.getElementById('completeSub').textContent  = t.congrats;
-  document.getElementById('completeBack').textContent = t.backList;
-  document.getElementById('completeOverlay').classList.add('show');
-  if(!getToken()){isDone=true;saveLP();}
+  document.getElementById('ovHd').textContent       = t.allFound;
+  document.getElementById('ovSub').textContent      = t.congrats;
+  document.getElementById('ovBack').textContent     = t.backList;
+  document.getElementById('ovPlayAgain').textContent= t.playAgain;
+  document.getElementById('overlay').classList.add('show');
+  if(!getToken()){ isDone=true; saveLS(); }
 }
 
+/* ── Toggle done ── */
 async function toggleDone() {
-  isDone=!isDone; updateDoneBtn();
+  isDone = !isDone; updateDoneBtn();
   const token=getToken();
-  if(token){try{await fetch(`/api/wordsearch/${PUZZLE_ID}/done/`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({is_done:isDone})});}catch{}}
-  else saveLP();
+  if(token){
+    try{ await fetch(`/api/wordsearch/${PID}/done/`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({is_done:isDone})}); }
+    catch{}
+  } else saveLS();
 }
 
-window.setUILang=function(lang){uiLang=lang;localStorage.setItem('uiLang',lang);applyTranslations();if(puzzle)renderAll();else document.getElementById('backBtn').textContent=tr().back;updateDoneBtn();};
-loadPuzzle();
+/* ── Reset progress ── */
+async function resetProgress(silent=false) {
+  foundWords=new Set(); isDone=false;
+  foundCells=new Map();
+  // Reset colour assignments so words get same colours next play
+  Object.keys(wordColorIdx).forEach(k => delete wordColorIdx[k]);
+  colorCounter=0;
+  if(!silent && !confirm(tr().reset + '?')) return;
+  document.getElementById('overlay').classList.remove('show');
+
+  const token=getToken();
+  if(token){
+    try{ await fetch(`/api/wordsearch/${PID}/reset/`,{method:'POST',headers:{'Authorization':`Bearer ${token}`}}); }
+    catch{}
+  } else { clearLS(); }
+
+  updateDoneBtn();
+  // Re-render grid and words
+  renderGrid(); renderWords(); updateProgress();
+}
+
+window.setUILang=function(lang){uiLang=lang;localStorage.setItem('uiLang',lang);applyTranslations();applyI18N();if(puzzle)buildUI();};
+init();
 </script>
 {% endblock %}
