@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}LangLearn{% endblock %}
+{% block nav_home %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+.hero {
+  min-height: calc(100vh - var(--nav-h));
+  display: flex; align-items: center;
+  position: relative; overflow: hidden;
+  padding: 60px 0;
+}
+.hero-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 65% 40%, rgba(79,142,247,.09) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 15% 70%, rgba(56,217,169,.07) 0%, transparent 60%);
+  transition: background var(--transition);
+}
+[data-theme="light"] .hero-bg {
+  background:
+    radial-gradient(ellipse 70% 60% at 65% 40%, rgba(47,111,224,.07) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 15% 70%, rgba(26,170,130,.05) 0%, transparent 60%);
+}
+.hero-grid {
+  position: absolute; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(79,142,247,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,142,247,.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 100%);
+}
+[data-theme="light"] .hero-grid {
+  background-image:
+    linear-gradient(rgba(47,111,224,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(47,111,224,.05) 1px, transparent 1px);
+}
+
+.hero-content { position: relative; z-index: 1; max-width: 600px; }
+
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(79,142,247,.1); border: 1px solid rgba(79,142,247,.2);
+  color: var(--accent); padding: 6px 14px; border-radius: 20px;
+  font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 24px;
+}
+.hero-eyebrow::before {
+  content: ''; width: 6px; height: 6px;
+  background: var(--accent); border-radius: 50%;
+  animation: blink 2s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(1.4)} }
+
+h1.hero-title {
+  font-family: var(--font-head);
+  font-size: clamp(2.6rem, 5.5vw, 4.2rem);
+  font-weight: 800; line-height: 1.06;
+  letter-spacing: -2px; margin-bottom: 20px;
+  color: var(--text);
+}
+h1.hero-title em { font-style: normal; color: var(--accent); }
+
+.hero-sub { font-size: 1.05rem; color: var(--muted); max-width: 460px; line-height: 1.75; margin-bottom: 36px; }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.hero-floats {
+  position: absolute; right: 0; top: 50%;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 14px; z-index: 1;
+}
+.lang-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 26px; text-align: center;
+  min-width: 130px; transition: transform .3s, border-color .3s;
+  box-shadow: var(--shadow);
+}
+.lang-card:nth-child(1) { animation: float1 5s ease-in-out infinite; }
+.lang-card:nth-child(2) { animation: float1 5s ease-in-out infinite -1.7s; }
+.lang-card:nth-child(3) { animation: float1 5s ease-in-out infinite -3.4s; }
+@keyframes float1 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+.lang-card:hover { border-color: var(--accent); }
+.lang-flag { font-size: 1.8rem; margin-bottom: 5px; }
+.lang-name { font-family: var(--font-head); font-size: .82rem; font-weight: 700; color: var(--text); }
+.lang-sub  { font-size: .7rem; color: var(--muted); }
+
+/* FEATURES */
+.features { padding: 96px 0; }
+.section-eyebrow {
+  font-size: .72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2px; color: var(--accent); margin-bottom: 10px;
+}
+.section-title {
+  font-family: var(--font-head);
+  font-size: clamp(1.7rem, 3.5vw, 2.6rem);
+  font-weight: 800; letter-spacing: -1px;
+  color: var(--text); margin-bottom: 48px;
+}
+.feat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+.feat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px;
+  transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+.feat-card:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: var(--shadow); }
+.feat-icon {
+  width: 46px; height: 46px; border-radius: 12px;
+  background: rgba(79,142,247,.1); display: flex; align-items: center;
+  justify-content: center; font-size: 1.3rem; margin-bottom: 16px;
+}
+[data-theme="light"] .feat-icon { background: rgba(47,111,224,.08); }
+.feat-title { font-family: var(--font-head); font-size: 1rem; font-weight: 700; margin-bottom: 7px; color: var(--text); }
+.feat-desc  { color: var(--muted); font-size: .87rem; line-height: 1.65; }
+
+/* CTA */
+.cta-band {
+  border-top: 1px solid var(--border);
+  padding: 80px 0; text-align: center;
+}
+.cta-title {
+  font-family: var(--font-head);
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-weight: 800; letter-spacing: -1px;
+  color: var(--text); margin-bottom: 10px;
+}
+.cta-sub { color: var(--muted); margin-bottom: 30px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="hero container">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow" id="heroEyebrow"></div>
+    <h1 class="hero-title" id="heroTitle"></h1>
+    <p class="hero-sub" id="heroSub"></p>
+    <div class="hero-actions">
+      <a href="/wordsearch/" class="btn btn-primary btn-lg" id="heroPlay"></a>
+      <a href="/register/" class="btn btn-ghost btn-lg" id="heroReg"></a>
+    </div>
+  </div>
+  <div class="hero-floats">
+    <div class="lang-card"><div class="lang-flag">🇬🇧</div><div class="lang-name">English</div><div class="lang-sub">EN</div></div>
+    <div class="lang-card"><div class="lang-flag">🇺🇦</div><div class="lang-name">Українська</div><div class="lang-sub">UK</div></div>
+    <div class="lang-card"><div class="lang-flag">🇫🇮</div><div class="lang-name">Suomi</div><div class="lang-sub">FI</div></div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="container">
+    <div class="section-eyebrow" id="featLabel"></div>
+    <h2 class="section-title" id="featTitle"></h2>
+    <div class="feat-grid" id="featGrid"></div>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="container">
+    <h2 class="cta-title" id="ctaTitle"></h2>
+    <p class="cta-sub" id="ctaSub"></p>
+    <a href="/register/" class="btn btn-primary btn-lg" id="ctaBtn"></a>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const HOME_I18N = {
+  en: {
+    eyebrow:'Language Learning Platform',
+    title:'Learn languages<br>through <em>games</em>',
+    sub:'Solve word search puzzles in English, Ukrainian and Finnish. Built for students and teachers.',
+    play:'Start Playing', reg:'Create Account',
+    feat_label:'Features', feat_title:'Everything you need to learn',
+    cta_title:'Ready to start?', cta_sub:'Join students already learning new languages', cta_btn:'Sign up — it\'s free',
+    features:[
+      {icon:'🔍',title:'Word Search',desc:'Find hidden words in the grid. Simple, addictive, effective for vocabulary.'},
+      {icon:'🌍',title:'3 Languages',desc:'English, Ukrainian and Finnish. Switch the interface language anytime.'},
+      {icon:'👩‍🏫',title:'For Teachers',desc:'Create custom puzzles with your word lists and publish for students.'},
+      {icon:'📊',title:'Track Progress',desc:'Mark puzzles as done and filter what you still need to complete.'},
+    ],
+  },
+  uk: {
+    eyebrow:'Платформа вивчення мов',
+    title:'Вивчай мови<br>через <em>ігри</em>',
+    sub:'Розв\'язуй філворди англійською, українською та фінською. Для учнів та вчителів.',
+    play:'Почати грати', reg:'Створити акаунт',
+    feat_label:'Можливості', feat_title:'Все що потрібно для навчання',
+    cta_title:'Готовий почати?', cta_sub:'Сотні учнів вже вивчають нові мови', cta_btn:'Зареєструватись — безплатно',
+    features:[
+      {icon:'🔍',title:'Філворди',desc:'Знаходь приховані слова у сітці. Просто, захоплююче, ефективно.'},
+      {icon:'🌍',title:'3 мови',desc:'Англійська, українська та фінська — перемикай мову будь-коли.'},
+      {icon:'👩‍🏫',title:'Для вчителів',desc:'Створюй власні завдання зі своїми словами та публікуй для учнів.'},
+      {icon:'📊',title:'Прогрес',desc:'Відмічай виконані завдання та фільтруй нові.'},
+    ],
+  },
+  fi: {
+    eyebrow:'Kielenoppimisalusta',
+    title:'Opi kieliä<br><em>pelien</em> kautta',
+    sub:'Ratkaise täytäpelat englanniksi, ukrainaksi ja suomeksi. Opiskelijoille ja opettajille.',
+    play:'Aloita pelaaminen', reg:'Luo tili',
+    feat_label:'Ominaisuudet', feat_title:'Kaikki mitä tarvitset',
+    cta_title:'Valmis aloittamaan?', cta_sub:'Satoja opiskelijoita oppii jo uusia kieliä', cta_btn:'Rekisteröidy — ilmaiseksi',
+    features:[
+      {icon:'🔍',title:'Täytäpelat',desc:'Löydä piilotetut sanat ruudukosta. Yksinkertaista, koukuttavaa ja tehokasta.'},
+      {icon:'🌍',title:'3 kieltä',desc:'Englanti, ukraina ja suomi — vaihda kieli milloin tahansa.'},
+      {icon:'👩‍🏫',title:'Opettajille',desc:'Luo mukautettuja tehtäviä ja jaa opiskelijoille.'},
+      {icon:'📊',title:'Seuraa edistymistä',desc:'Merkitse valmiit tehtävät ja suodata uudet.'},
+    ],
+  },
+};
+
+function renderHome() {
+  const d = HOME_I18N[uiLang] || HOME_I18N.en;
+  document.getElementById('heroEyebrow').textContent = d.eyebrow;
+  document.getElementById('heroTitle').innerHTML  = d.title;
+  document.getElementById('heroSub').textContent  = d.sub;
+  document.getElementById('heroPlay').textContent = d.play;
+  document.getElementById('featLabel').textContent = d.feat_label;
+  document.getElementById('featTitle').textContent = d.feat_title;
+  document.getElementById('ctaTitle').textContent  = d.cta_title;
+  document.getElementById('ctaSub').textContent    = d.cta_sub;
+  document.getElementById('ctaBtn').textContent    = d.cta_btn;
+
+  const me = getMe();
+  const regBtn = document.getElementById('heroReg');
+  if (me) {
+    regBtn.style.display = 'none';
+    document.getElementById('ctaBtn').href = '/wordsearch/';
+  } else {
+    regBtn.textContent = d.reg;
+  }
+
+  document.getElementById('featGrid').innerHTML = d.features.map(f => `
+    <div class="feat-card">
+      <div class="feat-icon">${f.icon}</div>
+      <div class="feat-title">${f.title}</div>
+      <div class="feat-desc">${f.desc}</div>
+    </div>`).join('');
+}
+
+const _orig = window.setUILang;
+window.setUILang = function(lang) {
+  uiLang = lang; localStorage.setItem('uiLang', lang);
+  applyTranslations(); renderHome();
+};
+renderHome();
+</script>
+{% endblock %}

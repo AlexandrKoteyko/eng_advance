@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Sign Up — LangLearn{% endblock %}
+
+{% block extra_head %}
+<style>
+.auth-wrap { min-height:calc(100vh - var(--nav-h)); display:flex; align-items:center; justify-content:center; padding:40px 24px; }
+.auth-card { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:44px; width:100%; max-width:460px; box-shadow:var(--shadow); }
+.auth-title { font-family:var(--font-head); font-size:1.9rem; font-weight:800; letter-spacing:-1px; margin-bottom:6px; color:var(--text); }
+.auth-sub   { color:var(--muted); font-size:.88rem; margin-bottom:32px; }
+.auth-sub a { color:var(--accent); text-decoration:none; }
+.auth-sub a:hover { text-decoration:underline; }
+.row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.submit-btn { width:100%; padding:13px; background:var(--accent); color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:700; cursor:pointer; margin-top:8px; transition:opacity var(--transition); font-family:var(--font-body); }
+.submit-btn:hover { opacity:.85; }
+.submit-btn:disabled { opacity:.45; cursor:not-allowed; }
+.role-hint { font-size:.72rem; color:var(--muted); margin-top:4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1 class="auth-title" id="authTitle"></h1>
+    <p class="auth-sub" id="authSub"></p>
+    <div id="alertBox"></div>
+    <div class="row2">
+      <div class="field">
+        <label class="form-label" id="lblUser"></label>
+        <input type="text" id="username" autocomplete="username">
+      </div>
+      <div class="field">
+        <label class="form-label" id="lblRole"></label>
+        <select id="role">
+          <option value="student" id="optStu"></option>
+          <option value="teacher" id="optTea"></option>
+        </select>
+        <div class="role-hint" id="roleHint"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label class="form-label" id="lblEmail"></label>
+      <input type="email" id="email" autocomplete="email">
+    </div>
+    <div class="field">
+      <label class="form-label" id="lblLang"></label>
+      <select id="preferred_language">
+        <option value="en">🇬🇧 English</option>
+        <option value="uk">🇺🇦 Українська</option>
+        <option value="fi">🇫🇮 Suomi</option>
+      </select>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label class="form-label" id="lblPass"></label>
+        <input type="password" id="password" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label class="form-label" id="lblPass2"></label>
+        <input type="password" id="password2" autocomplete="new-password">
+      </div>
+    </div>
+    <button class="submit-btn" id="submitBtn" onclick="doRegister()">
+      <span id="submitLabel"></span>
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const REG_I18N = {
+  en:{ title:'Create account', sub:'Already have one? <a href="/login/">Log in</a>', user:'Username', role:'Role', email:'Email', lang:'Interface Language', pass:'Password', pass2:'Confirm', btn:'Sign up', loading:'Creating…', stu:'Student', tea:'Teacher', hint:'Admins are created via Django admin' },
+  uk:{ title:'Створити акаунт', sub:'Вже є акаунт? <a href="/login/">Увійти</a>', user:'Нікнейм', role:'Роль', email:'Email', lang:'Мова інтерфейсу', pass:'Пароль', pass2:'Підтвердити', btn:'Зареєструватися', loading:'Реєстрація…', stu:'Учень', tea:'Вчитель', hint:'Адміни створюються через Django admin' },
+  fi:{ title:'Luo tili', sub:'Onko sinulla jo tili? <a href="/login/">Kirjaudu</a>', user:'Käyttäjänimi', role:'Rooli', email:'Sähköposti', lang:'Käyttöliittymän kieli', pass:'Salasana', pass2:'Vahvista', btn:'Rekisteröidy', loading:'Luodaan…', stu:'Opiskelija', tea:'Opettaja', hint:'Ylläpitäjät luodaan Django adminissa' },
+};
+function d() { return REG_I18N[uiLang]||REG_I18N.en; }
+function renderReg() {
+  const t = d();
+  document.getElementById('authTitle').textContent = t.title;
+  document.getElementById('authSub').innerHTML     = t.sub;
+  document.getElementById('lblUser').textContent   = t.user;
+  document.getElementById('lblRole').textContent   = t.role;
+  document.getElementById('lblEmail').textContent  = t.email;
+  document.getElementById('lblLang').textContent   = t.lang;
+  document.getElementById('lblPass').textContent   = t.pass;
+  document.getElementById('lblPass2').textContent  = t.pass2;
+  document.getElementById('submitLabel').textContent = t.btn;
+  document.getElementById('optStu').textContent    = t.stu;
+  document.getElementById('optTea').textContent    = t.tea;
+  document.getElementById('roleHint').textContent  = t.hint;
+  document.getElementById('preferred_language').value = uiLang;
+}
+async function doRegister() {
+  const body = { username:document.getElementById('username').value.trim(), email:document.getElementById('email').value.trim(), password:document.getElementById('password').value, password2:document.getElementById('password2').value, role:document.getElementById('role').value, preferred_language:document.getElementById('preferred_language').value };
+  if (!body.username||!body.email||!body.password) return;
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; document.getElementById('submitLabel').textContent = d().loading;
+  document.getElementById('alertBox').innerHTML = '';
+  try {
+    const res  = await fetch('/api/users/register/', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok) {
+      document.getElementById('alertBox').innerHTML = `<div class="alert alert-error">${Object.values(data).flat().join(' ')}</div>`;
+      btn.disabled=false; document.getElementById('submitLabel').textContent=d().btn; return;
+    }
+    localStorage.setItem('access_token', data.tokens.access);
+    localStorage.setItem('refresh_token', data.tokens.refresh);
+    localStorage.setItem('me', JSON.stringify(data.user));
+    window.location.href = '/';
+  } catch {
+    document.getElementById('alertBox').innerHTML = `<div class="alert alert-error">Network error</div>`;
+    btn.disabled=false; document.getElementById('submitLabel').textContent=d().btn;
+  }
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Enter') doRegister(); });
+window.setUILang = function(lang){ uiLang=lang; localStorage.setItem('uiLang',lang); applyTranslations(); renderReg(); };
+if (getMe()) window.location.href='/';
+renderReg();
+</script>
+{% endblock %}

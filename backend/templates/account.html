@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+{% block title %}Account — LangLearn{% endblock %}
+
+{% block extra_head %}
+<style>
+  .account-wrap { max-width: 960px; margin: 0 auto; padding: 48px 24px; }
+  .account-header { display: flex; align-items: center; gap: 24px; margin-bottom: 48px; }
+  .avatar-circle {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-head); font-size: 1.8rem; font-weight: 800; color: #fff; flex-shrink: 0;
+  }
+  .account-name { font-family: var(--font-head); font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
+  .account-email { color: var(--muted); font-size: .9rem; margin-top: 2px; }
+  .role-badge {
+    display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: .72rem;
+    font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-top: 6px;
+  }
+  .role-admin { background: rgba(247,147,79,.15); color: var(--accent3); }
+  .role-teacher { background: rgba(79,142,247,.15); color: var(--accent); }
+  .role-student { background: rgba(56,217,169,.15); color: var(--accent2); }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 32px; border-bottom: 1px solid var(--border); }
+  .tab-btn {
+    padding: 10px 20px; background: transparent; border: none; color: var(--muted);
+    cursor: pointer; font-size: .9rem; font-weight: 600; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: color .2s; font-family: var(--font-body);
+  }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Profile tab */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .info-field { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .info-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 4px; }
+  .info-value { font-size: .95rem; font-weight: 500; }
+
+  /* Change password */
+  .pass-form { max-width: 400px; }
+  .field { margin-bottom: 16px; }
+  label.form-label { display: block; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 7px; }
+  input[type=password] {
+    width: 100%; padding: 11px 14px; background: var(--bg2);
+    border: 1px solid var(--border); border-radius: 10px; color: var(--text);
+    font-size: .95rem; outline: none; transition: border-color .2s; font-family: var(--font-body);
+  }
+  input:focus { border-color: var(--accent); }
+  .save-btn {
+    padding: 11px 28px; background: var(--accent); color: #fff; border: none;
+    border-radius: 10px; font-size: .95rem; font-weight: 700; cursor: pointer;
+    font-family: var(--font-body); transition: opacity .2s;
+  }
+  .save-btn:hover { opacity: .85; }
+  .save-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* Puzzles tab */
+  .puzzle-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .puzzle-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    transition: border-color .2s, transform .2s;
+  }
+  .puzzle-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .puzzle-card-title { font-family: var(--font-head); font-size: 1rem; font-weight: 700; margin: 10px 0 6px; }
+  .puzzle-card-meta { font-size: .8rem; color: var(--muted); margin-bottom: 14px; }
+  .puzzle-card-actions { display: flex; gap: 8px; }
+  .action-btn {
+    padding: 6px 14px; border-radius: 7px; font-size: .8rem; font-weight: 600;
+    cursor: pointer; text-decoration: none; border: 1px solid var(--border);
+    background: transparent; color: var(--text); transition: all .2s; font-family: var(--font-body);
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.danger:hover { border-color: #f87171; color: #f87171; }
+  .visibility-toggle {
+    padding: 3px 10px; border-radius: 12px; font-size: .7rem; font-weight: 700;
+    cursor: pointer; border: none; font-family: var(--font-body);
+  }
+  .vis-public { background: rgba(56,217,169,.15); color: var(--accent2); }
+  .vis-private { background: rgba(107,127,163,.15); color: var(--muted); }
+
+  .section-title { font-family: var(--font-head); font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; }
+  .empty-state { text-align: center; padding: 60px; color: var(--muted); }
+  .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+  .create-fab {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent); color: #fff; padding: 10px 20px;
+    border-radius: 10px; text-decoration: none; font-weight: 700;
+    font-size: .88rem; margin-bottom: 24px; transition: opacity .2s;
+  }
+  .create-fab:hover { opacity: .85; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="account-wrap">
+  <div id="accountHeader" class="account-header">
+    <div class="avatar-circle" id="avatarCircle">?</div>
+    <div>
+      <div class="account-name" id="acName">Loading...</div>
+      <div class="account-email" id="acEmail"></div>
+      <div class="role-badge" id="acRole"></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('info')" id="tab-info" data-i18n-ac="tab_info">Profile</button>
+    <button class="tab-btn" onclick="switchTab('puzzles')" id="tab-puzzles" data-i18n-ac="tab_puzzles" style="display:none">My Puzzles</button>
+    <button class="tab-btn" onclick="switchTab('password')" id="tab-password" data-i18n-ac="tab_pass">Change Password</button>
+  </div>
+
+  <!-- Profile tab -->
+  <div class="tab-panel active" id="panel-info">
+    <div class="info-grid">
+      <div class="info-field">
+        <div class="info-label" data-i18n-ac="lbl_username">Username</div>
+        <div class="info-value" id="infoUsername">—</div>
+      </div>
+      <div class="info-field">
+        <div class="info-label" data-i18n-ac="lbl_email">Email</div>
+        <div class="info-value" id="infoEmail">—</div>
+      </div>
+      <div class="info-field">
+        <div class="info-label" data-i18n-ac="lbl_lang">Interface Language</div>
+        <div class="info-value" id="infoLang">—</div>
+      </div>
+      <div class="info-field">
+        <div class="info-label" data-i18n-ac="lbl_joined">Joined</div>
+        <div class="info-value" id="infoJoined">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- My Puzzles tab -->
+  <div class="tab-panel" id="panel-puzzles">
+    <a href="/wordsearch/create/" class="create-fab" id="createFab">+ <span data-i18n-ac="btn_create">Create Puzzle</span></a>
+    <div class="puzzle-grid" id="puzzleGrid">
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-icon">🔍</div>
+        <div id="emptyPuzzles">No puzzles yet</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change password tab -->
+  <div class="tab-panel" id="panel-password">
+    <div class="pass-form">
+      <div id="passAlertBox"></div>
+      <div class="field">
+        <label class="form-label" data-i18n-ac="lbl_old_pass">Current Password</label>
+        <input type="password" id="oldPass">
+      </div>
+      <div class="field">
+        <label class="form-label" data-i18n-ac="lbl_new_pass">New Password</label>
+        <input type="password" id="newPass">
+      </div>
+      <div class="field">
+        <label class="form-label" data-i18n-ac="lbl_new_pass2">Confirm New Password</label>
+        <input type="password" id="newPass2">
+      </div>
+      <button class="save-btn" onclick="changePassword()" id="passBtn">
+        <span id="passBtnLabel" data-i18n-ac="btn_save_pass">Save Password</span>
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const i18n_ac = {
+  en: {
+    tab_info: 'Profile', tab_puzzles: 'My Puzzles', tab_pass: 'Change Password',
+    lbl_username: 'Username', lbl_email: 'Email', lbl_lang: 'Interface Language', lbl_joined: 'Joined',
+    lbl_old_pass: 'Current Password', lbl_new_pass: 'New Password', lbl_new_pass2: 'Confirm New Password',
+    btn_save_pass: 'Save Password', btn_create: 'Create Puzzle',
+    empty_puzzles: 'No puzzles yet', word_count: 'words', by: 'by',
+    vis_public: 'Public', vis_private: 'Private',
+    btn_play: 'Play', btn_delete: 'Delete',
+    pass_ok: 'Password changed successfully!', saving: 'Saving...',
+    roles: { admin: 'Admin', teacher: 'Teacher', student: 'Student' },
+    langs: { en: 'English', uk: 'Ukrainian', fi: 'Finnish' },
+  },
+  uk: {
+    tab_info: 'Профіль', tab_puzzles: 'Мої завдання', tab_pass: 'Змінити пароль',
+    lbl_username: 'Нікнейм', lbl_email: 'Email', lbl_lang: 'Мова інтерфейсу', lbl_joined: 'Зареєстровано',
+    lbl_old_pass: 'Поточний пароль', lbl_new_pass: 'Новий пароль', lbl_new_pass2: 'Підтвердити пароль',
+    btn_save_pass: 'Зберегти пароль', btn_create: 'Створити завдання',
+    empty_puzzles: 'Завдань ще немає', word_count: 'слів', by: 'від',
+    vis_public: 'Публічне', vis_private: 'Приватне',
+    btn_play: 'Грати', btn_delete: 'Видалити',
+    pass_ok: 'Пароль змінено!', saving: 'Зберігаю...',
+    roles: { admin: 'Адмін', teacher: 'Вчитель', student: 'Учень' },
+    langs: { en: 'Англійська', uk: 'Українська', fi: 'Фінська' },
+  },
+  fi: {
+    tab_info: 'Profiili', tab_puzzles: 'Omat tehtävät', tab_pass: 'Vaihda salasana',
+    lbl_username: 'Käyttäjänimi', lbl_email: 'Sähköposti', lbl_lang: 'Käyttöliittymän kieli', lbl_joined: 'Liittynyt',
+    lbl_old_pass: 'Nykyinen salasana', lbl_new_pass: 'Uusi salasana', lbl_new_pass2: 'Vahvista uusi salasana',
+    btn_save_pass: 'Tallenna salasana', btn_create: 'Luo tehtävä',
+    empty_puzzles: 'Ei tehtäviä vielä', word_count: 'sanaa', by: 'tekijä',
+    vis_public: 'Julkinen', vis_private: 'Yksityinen',
+    btn_play: 'Pelaa', btn_delete: 'Poista',
+    pass_ok: 'Salasana vaihdettu!', saving: 'Tallennetaan...',
+    roles: { admin: 'Ylläpitäjä', teacher: 'Opettaja', student: 'Opiskelija' },
+    langs: { en: 'Englanti', uk: 'Ukraina', fi: 'Suomi' },
+  },
+};
+function d() { return i18n_ac[uiLang] || i18n_ac.en; }
+
+// Redirect if not logged in
+const me = getMe();
+if (!me) { window.location.href = '/login/'; }
+
+function renderAccountInfo() {
+  const t = d();
+  // Tabs
+  document.getElementById('tab-info').textContent = t.tab_info;
+  document.getElementById('tab-puzzles').textContent = t.tab_puzzles;
+  document.getElementById('tab-password').textContent = t.tab_pass;
+  // Labels
+  document.querySelectorAll('[data-i18n-ac]').forEach(el => {
+    const k = el.dataset.i18nAc;
+    if (t[k]) el.textContent = t[k];
+  });
+
+  if (!me) return;
+  const initial = (me.username || me.email || '?')[0].toUpperCase();
+  document.getElementById('avatarCircle').textContent = initial;
+  document.getElementById('acName').textContent = me.username;
+  document.getElementById('acEmail').textContent = me.email;
+
+  const roleEl = document.getElementById('acRole');
+  roleEl.textContent = t.roles[me.role] || me.role;
+  roleEl.className = `role-badge role-${me.role}`;
+
+  document.getElementById('infoUsername').textContent = me.username;
+  document.getElementById('infoEmail').textContent = me.email;
+  document.getElementById('infoLang').textContent = t.langs[me.preferred_language] || me.preferred_language;
+  document.getElementById('infoJoined').textContent = me.date_joined ? new Date(me.date_joined).toLocaleDateString() : '—';
+  document.getElementById('emptyPuzzles').textContent = t.empty_puzzles;
+
+  // Show "My Puzzles" tab only for teacher/admin
+  if (me.role === 'teacher' || me.role === 'admin') {
+    document.getElementById('tab-puzzles').style.display = 'block';
+  }
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+
+  if (name === 'puzzles') loadMyPuzzles();
+}
+
+async function loadMyPuzzles() {
+  const t = d();
+  const token = getToken();
+  if (!token) return;
+  try {
+    const res = await fetch('/api/wordsearch/', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    const mine = (Array.isArray(data) ? data : data.results || []).filter(p => p.author === me.username);
+
+    const grid = document.getElementById('puzzleGrid');
+    if (mine.length === 0) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🔍</div><div>${t.empty_puzzles}</div></div>`;
+      return;
+    }
+    grid.innerHTML = mine.map(p => `
+      <div class="puzzle-card">
+        <span class="tag tag-${p.language}">${p.language_display}</span>
+        <div class="puzzle-card-title">${escHtml(p.title)}</div>
+        <div class="puzzle-card-meta">${p.word_count} ${t.word_count}</div>
+        <div class="puzzle-card-actions">
+          <a href="/wordsearch/${p.id}/" class="action-btn">${t.btn_play}</a>
+          <button class="visibility-toggle ${p.is_public ? 'vis-public' : 'vis-private'}"
+            onclick="toggleVisibility(${p.id}, ${p.is_public}, this)">
+            ${p.is_public ? t.vis_public : t.vis_private}
+          </button>
+          <button class="action-btn danger" onclick="deletePuzzle(${p.id}, this)">${t.btn_delete}</button>
+        </div>
+      </div>
+    `).join('');
+  } catch {}
+}
+
+async function toggleVisibility(id, currentPublic, btn) {
+  const t = d();
+  const token = getToken();
+  try {
+    const res = await fetch(`/api/wordsearch/${id}/manage/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ is_public: !currentPublic }),
+    });
+    if (res.ok) {
+      const newPublic = !currentPublic;
+      btn.textContent = newPublic ? t.vis_public : t.vis_private;
+      btn.className = `visibility-toggle ${newPublic ? 'vis-public' : 'vis-private'}`;
+      btn.onclick = () => toggleVisibility(id, newPublic, btn);
+    }
+  } catch {}
+}
+
+async function deletePuzzle(id, btn) {
+  if (!confirm('Delete this puzzle?')) return;
+  const token = getToken();
+  try {
+    const res = await fetch(`/api/wordsearch/${id}/manage/`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (res.ok) btn.closest('.puzzle-card').remove();
+  } catch {}
+}
+
+async function changePassword() {
+  const t = d();
+  const old_password = document.getElementById('oldPass').value;
+  const new_password = document.getElementById('newPass').value;
+  const new_password2 = document.getElementById('newPass2').value;
+  if (!old_password || !new_password || !new_password2) return;
+
+  const btn = document.getElementById('passBtn');
+  btn.disabled = true;
+  document.getElementById('passBtnLabel').textContent = t.saving;
+  document.getElementById('passAlertBox').innerHTML = '';
+
+  try {
+    const res = await fetch('/api/users/change-password/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+      body: JSON.stringify({ old_password, new_password, new_password2 }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const msg = Object.values(data).flat().join(' ');
+      document.getElementById('passAlertBox').innerHTML = `<div class="alert alert-error">${msg}</div>`;
+    } else {
+      document.getElementById('passAlertBox').innerHTML = `<div class="alert alert-success">${t.pass_ok}</div>`;
+      document.getElementById('oldPass').value = '';
+      document.getElementById('newPass').value = '';
+      document.getElementById('newPass2').value = '';
+    }
+  } catch {
+    document.getElementById('passAlertBox').innerHTML = `<div class="alert alert-error">Network error</div>`;
+  }
+  btn.disabled = false;
+  document.getElementById('passBtnLabel').textContent = t.btn_save_pass;
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+window.setUILang = function(lang) {
+  uiLang = lang; localStorage.setItem('uiLang', lang);
+  applyTranslations(); renderAccountInfo();
+};
+renderAccountInfo();
+</script>
+{% endblock %}
